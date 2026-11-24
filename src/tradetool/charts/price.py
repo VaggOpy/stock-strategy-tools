@@ -60,9 +60,10 @@ def _price_traces(df, kind, benchmark, ticker):
 
 
 def price_chart(df: pd.DataFrame, kind="candles", indicators=(), ticker="", benchmark=None,
-                start=None, log=False, volume=True, height=750) -> go.Figure:
+                start=None, log=False, volume=True, events=None, height=750) -> go.Figure:
     """indicators: list of (key, params dict). Indicators and Heikin-Ashi are computed on the whole
-    df and only then cut to `start`, so long averages are already warmed up in the visible window."""
+    df and only then cut to `start`, so long averages are already warmed up in the visible window.
+    events: dates to mark on the price panel (e.g. the days fundamentals became public)."""
     start = pd.Timestamp(start) if start is not None else df.index.min()
     cut = lambda x: x[x.index >= start]
     overlays = [(k, p) for k, p in indicators if INDICATORS[k].overlay]
@@ -82,6 +83,14 @@ def price_chart(df: pd.DataFrame, kind="candles", indicators=(), ticker="", benc
         traces = _price_traces(cut(df), kind, benchmark, ticker)
     for t in traces:
         fig.add_trace(t, row=1, col=1)
+
+    if events is not None:
+        ev = [d for d in pd.to_datetime(events) if start <= d <= df.index.max()]
+        if ev:
+            y = cut(df)["low"].min() if kind != "relative" else None
+            fig.add_trace(go.Scatter(x=ev, y=[y] * len(ev) if y is not None else [0] * len(ev), mode="markers",
+                                     name="Κατάθεση στη SEC", marker=dict(symbol="triangle-up", size=10,
+                                     color=NEUTRAL)), row=1, col=1)
 
     color_i = 1
     for key, params in overlays:

@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from tradetool.charts.price import CHART_TYPES, price_chart
-from tradetool.data import prices
+from tradetool.data import fundamentals, prices
 from tradetool.data.universe import load_universe
 from tradetool.indicators.registry import INDICATORS
 
@@ -19,6 +19,14 @@ def load(ticker):
     return prices.load(ticker)
 
 
+@st.cache_data
+def load_fund(ticker):
+    try:
+        return fundamentals.load(ticker)
+    except Exception:
+        return None
+
+
 u = universe()
 
 with st.sidebar:
@@ -33,6 +41,7 @@ with st.sidebar:
     c1, c2 = st.columns(2)
     log = c1.checkbox("Log κλίμακα")
     volume = c2.checkbox("Όγκος", value=True)
+    show_filings = st.checkbox("Ημερομηνίες κατάθεσης στη SEC", disabled=kind_filter != "Μετοχές")
 
     st.divider()
     chosen = st.multiselect("Δείκτες", list(INDICATORS), default=["EMA", "RSI"],
@@ -80,9 +89,41 @@ m1.metric("Κλείσιμο", f"{df['close_raw'].iloc[-1]:,.2f}", f"{(last / pre
 m2.metric("Από υψηλό 52 εβδ.", f"{(last / year.max() - 1) * 100:.1f}%")
 m3.metric("Απόδοση περιόδου", f"{(last / df.loc[start, 'close'] - 1) * 100:+.1f}%")
 
+f = load_fund(ticker) if row["type"] == "stock" else None
+filings = None
+if show_filings and f is not None and len(f):
+    filings = f.loc[f["concept"] == "revenue", "filed"].unique()
+
 fig = price_chart(df, kind=kind, indicators=indicators, ticker=ticker, benchmark=benchmark,
-                  start=start, log=log, volume=volume)
+                  start=start, log=log, volume=volume, events=filings)
 st.plotly_chart(fig, use_container_width=True, theme="streamlit")
 
 st.caption(f"Ημερήσια δεδομένα {df.index[0].date()} έως {df.index[-1].date()}. Οι τιμές στο γράφημα είναι "
            "διορθωμένες για splits και μερίσματα· το «Κλείσιμο» πάνω είναι η πραγματική τιμή.")
+
+if f is not None and len(f):
+    st.subheader("Θεμελιώδη (SEC)")
+    today = df.index[-1] + pd.Timedelta(days=1)
+    g1, g2, g3 = st.columns(3)
+    g1.metric("Έσοδα 12μήνου", f"{fundamentals.ttm(f, 'revenue', today) / 1e9:,.1f} δισ.")
+    for col, concept, label in [(g2, "revenue", "Αύξηση εσόδων"), (g3, "eps_diluted", "Αύξηση EPS")]:
+        gr = fundamentals.ttm_growth(f, concept, today)
+        col.metric(label + " (12μ. έναντι προηγ. 12μ.)", "-" if pd.isna(gr) else f"{gr * 100:+.1f}%")
+
+    flows = ["revenue", "net_income", "eps_diluted", "op_cash_flow"]
+    w = f[f["concept"].isin(flows)].pivot_table(index="end", columns="concept", values="value")
+    filed = f[f["concept"] == "revenue"].set_index("end")["filed"]
+    w = w.reindex(columns=flows).tail(8).iloc[::-1]
+    table = pd.DataFrame({
+        "Τρίμηνο έως": w.index.date,
+        "Γνωστό από": (filed.reindex(w.index) + pd.Timedelta(days=1)).dt.date.values,
+        "Έσοδα (εκ.)": (w["revenue"] / 1e6).round(0),
+        "Καθαρά κέρδη (εκ.)": (w["net_income"] / 1e6).round(0),
+        "EPS": w["eps_diluted"].round(2),
+        "Λειτ. ταμ. ροές (εκ.)": (w["op_cash_flow"] / 1e6).round(0),
+    })
+    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.caption("Κάθε τιμή είναι η πρώτη που κατατέθηκε στη SEC και χρησιμοποιείται από την επόμενη μέρα της "
+               "κατάθεσης. Το 4ο τρίμηνο και οι ταμειακές ροές υπολογίζονται από σωρευτικές τιμές (π.χ. έτος - 9μηνο).")
+elif row["type"] == "stock":
+    st.info("Δεν βρέθηκαν τριμηνιαία στοιχεία στη SEC (π.χ. ξένες εταιρείες που καταθέτουν μόνο ετήσιο 20-F).")
