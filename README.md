@@ -48,13 +48,25 @@ Python 3.12.
 ```
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 pip install -e .
+python -m tradetool.data.setup
+```
+
+Το τελευταίο κατεβάζει τα δεδομένα στο `data/` (δεν είναι στο git): τιμές για τα 540 σύμβολα σε περίπου 5 λεπτά
+και τα θεμελιώδη της SEC από ένα έτοιμο στιγμιότυπο. Κλειδιά δεν χρειάζονται. Χωρίς κλειδιά Alpaca οι τιμές
+έρχονται μόνο από το Yahoo, οπότε τα νούμερα μπορεί να διαφέρουν λίγο από αυτά των docs (βλ.
+[docs/πηγές_δεδομένων.md](docs/πηγές_δεδομένων.md)). Για τα ίδια δεδομένα με τα πειράματα:
+
+```
 copy .env.example .env
 ```
 
-Στο `.env` μπαίνουν τα κλειδιά για Alpaca και Gemini και ένα email για τη SEC. Το `requirements-lock.txt`
-έχει τις ακριβείς εκδόσεις που έχουν δοκιμαστεί.
+και συμπλήρωση στο `.env` των κλειδιών Alpaca και ενός email για τη SEC (`SEC_USER_AGENT`). Με
+`python -m tradetool.data.setup --sec` τα θεμελιώδη κατεβαίνουν απευθείας από τη SEC (περίπου 17 λεπτά).
+
+Τα αποτελέσματα των πειραμάτων είναι ήδη στο `experiments/results/`, οπότε για να τα δει κανείς δεν χρειάζεται
+να τρέξει τίποτα. Η εφαρμογή δουλεύει και χωρίς το setup: κατεβάζει τα δεδομένα κάθε μετοχής όταν την ανοίγεις.
 
 Σε Windows, αν το path του project έχει ελληνικούς χαρακτήρες, το `pip install -e .` αποτυγχάνει (η Python 3.12
 γράφει τα `.pth` σε cp1252). Με λατινικό path δουλεύει κανονικά.
@@ -62,12 +74,15 @@ copy .env.example .env
 ## Χρήση
 
 ```
-python experiments/check_apis.py
+streamlit run app/Home.py
+pytest
 python experiments/classic_strategies.py
 python experiments/walkforward_methods.py
-pytest
-streamlit run app/Home.py
+python experiments/check_adjustments.py
 ```
+
+Τα tests τρέχουν και στο GitHub σε κάθε push, χωρίς δεδομένα. Όσα ελέγχουν τα ίδια τα δεδομένα
+(`tests/test_data_cache.py`) τρέχουν μόνο τοπικά, όταν υπάρχει ο φάκελος `data/`.
 
 ## Πρόοδος
 

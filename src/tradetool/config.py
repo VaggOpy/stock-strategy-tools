@@ -26,3 +26,8 @@ def env(name: str, required: bool = False) -> str | None:
 # Prices start 2016-01-04, the first year is warm-up for the 200-day indicators.
 TEST_START = "2017-01-03"
 TEST_END = "2026-10-30"
+
+# SEC fundamentals as downloaded for the experiments (public data), so a fresh clone does not need
+# 17 minutes of SEC requests. Made with: python -m tradetool.data.setup --make-snapshot
+FUNDAMENTALS_SNAPSHOT = ("https://github.com/VaggOpy/stock-strategy-tools/releases/download/"
+                         "data-2026-11-24/fundamentals.zip")
