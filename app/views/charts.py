@@ -98,7 +98,7 @@ if show_filings and f is not None and len(f):
 
 fig = price_chart(df, kind=kind, indicators=indicators, ticker=ticker, benchmark=benchmark,
                   start=start, log=log, volume=volume, events=filings)
-st.plotly_chart(fig, use_container_width=True, theme="streamlit")
+st.plotly_chart(fig, width="stretch", theme="streamlit")
 
 st.caption(f"Ημερήσια δεδομένα {df.index[0].date()} έως {df.index[-1].date()}. Οι τιμές στο γράφημα είναι "
            "διορθωμένες για splits και μερίσματα· το «Κλείσιμο» πάνω είναι η πραγματική τιμή.")
@@ -124,7 +124,7 @@ if f is not None and len(f):
         "EPS": w["eps_diluted"].round(2),
         "Λειτ. ταμ. ροές (εκ.)": (w["op_cash_flow"] / 1e6).round(0),
     })
-    st.dataframe(table, hide_index=True, use_container_width=True)
+    st.dataframe(table, hide_index=True, width="stretch")
     st.caption("Κάθε τιμή είναι η πρώτη που κατατέθηκε στη SEC και χρησιμοποιείται από την επόμενη μέρα της "
                "κατάθεσης. Το 4ο τρίμηνο και οι ταμειακές ροές υπολογίζονται από σωρευτικές τιμές (π.χ. έτος - 9μηνο).")
 elif row["type"] == "stock":
