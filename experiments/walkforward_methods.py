@@ -5,7 +5,7 @@ library, on every stock with data for the whole period. Two parameters are searc
 sma_trend), the rest stay at their defaults. Methods: see tradetool/optimize/walkforward.py, plus
 "pooled": one combination for all stocks, the best on average over all stocks in the train window.
 
-Run: python experiments/walkforward_methods.py   (about 10 minutes on 14 processes)
+Run: python experiments/walkforward_methods.py   (about 20 minutes on 14 processes)
 """
 import time
 from multiprocessing import Pool

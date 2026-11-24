@@ -82,7 +82,7 @@ st.plotly_chart(sensitivity_chart(axes, s_in, s_out, picks), width="stretch")
 ok = ~np.isnan(s_in) & ~np.isnan(s_out)
 rho = pd.Series(s_in[ok]).corr(pd.Series(s_out[ok]), method="spearman")
 c1, c2, c3 = st.columns(3)
-c1.metric("Συσχέτιση κατάταξης εντός/εκτός", f"{rho:.2f}")
+c1.metric("Συσχέτιση εντός/εκτός", f"{rho:.2f}")
 c2.metric("Καλύτερος εκτός δείγματος", f"{np.nanmax(s_out):.2f}")
 c3.metric("Διάμεσος εκτός δείγματος", f"{np.nanmedian(s_out):.2f}")
 st.caption("Αν η συσχέτιση είναι κοντά στο 0, το ποιος συνδυασμός ήταν καλύτερος στο παρελθόν δεν λέει σχεδόν "

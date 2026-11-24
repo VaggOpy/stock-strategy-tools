@@ -99,7 +99,9 @@ def walk_forward(R: pd.DataFrame, shape, default: int, fold_list: list[Fold], **
             continue
         s_in, s_out = sharpe(train), sharpe(test)
         ok = ~np.isnan(s_in) & ~np.isnan(s_out)
-        rho = spearmanr(s_in[ok], s_out[ok]).statistic if ok.sum() > 2 else np.nan
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # constant input, e.g. a stock where nothing traded
+            rho = spearmanr(s_in[ok], s_out[ok]).statistic if ok.sum() > 2 else np.nan
         for method, cols in choose(s_in, shape, default, seed=n, **kw).items():
             r = test[cols].mean(axis=1)
             oos.setdefault(method, []).append(r)
