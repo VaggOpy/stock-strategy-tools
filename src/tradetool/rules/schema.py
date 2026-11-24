@@ -119,9 +119,19 @@ def validate(rule: dict) -> list[str]:
                               "number. Adjusted prices are rescaled after later splits and dividends, so a fixed "
                               "level would use information from the future. Compare it with another price line, "
                               "or use RSI for fixed levels.")
+    days = rule.get("max_days")
+    if isinstance(days, str) and days[1:] in params:
+        spec = params[days[1:]]
+        if not (float(spec["low"]).is_integer() and float(spec.get("step", 1)).is_integer()):
+            errors.append(f"param {days[1:]}: max_days takes whole numbers, use whole low and step")
     if errors:
         return errors
-    return _value_errors(_fill(rule, {k: p["default"] for k, p in params.items()}))
+    # a search goes through the whole range, so the ends must run too, not only the default
+    for end in ("default", "low", "high"):
+        errors = _value_errors(_fill(rule, {k: p[end] for k, p in params.items()}))
+        if errors:
+            return errors if end == "default" else [f"with the params at their {end}: {e}" for e in errors]
+    return []
 
 
 def _price_scaled(op: dict) -> bool:

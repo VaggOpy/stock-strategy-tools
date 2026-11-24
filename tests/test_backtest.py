@@ -108,6 +108,13 @@ def test_validation_messages():
     unused = {"params": {"n": {"default": 20, "low": 5, "high": 50}},
               "entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 20}}]}
     assert validate(unused) == ["param n is defined but not used anywhere in the rule, remove it"]
+    # ranges that a parameter search would reach: a stop of 0 and half days
+    zero_stop = {**RULES["ema_cross"], "params": {**RULES["ema_cross"]["params"],
+                                                  "stop": {"default": 2, "low": 0, "high": 4}}}
+    assert validate(zero_stop) == ["with the params at their low: stop_atr must be greater than 0, got 0"]
+    half_days = {**RULES["sma_trend"], "max_days": "$d", "params": {**RULES["sma_trend"]["params"],
+                                                                     "d": {"default": 5, "low": 1, "high": 9, "step": 0.5}}}
+    assert "max_days takes whole numbers" in validate(half_days)[0]
 
 
 def test_metrics_known_values():
