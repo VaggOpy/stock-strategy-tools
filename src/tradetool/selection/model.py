@@ -10,10 +10,13 @@ index at each date are scored (see data/universe.add_sp500_dates).
 """
 from __future__ import annotations
 
+import hashlib
+from pathlib import Path
+
 import pandas as pd
 
 from tradetool.backtest.portfolio import top_n
-from tradetool.config import DATA_DIR
+from tradetool.config import DATA_DIR, FUNDAMENTALS_DIR
 from tradetool.data import prices
 from tradetool.selection import factors as fx
 from tradetool.selection.groups import group_panel
@@ -67,6 +70,20 @@ def baskets(score_panel: pd.DataFrame, n: int = 20) -> dict:
     return {d: top_n(score_panel.loc[d], n) for d in score_panel.index}
 
 
+def _inputs_key(stocks, universe) -> str:
+    """Changes when the stocks, the universe file, the fundamentals download or the factor code change,
+    so the app never shows ranks computed by older code or data."""
+    h = hashlib.sha256()
+    h.update(",".join(stocks).encode())
+    h.update(pd.util.hash_pandas_object(universe.astype(str), index=False).values.tobytes())
+    summary = FUNDAMENTALS_DIR / "_summary.csv"
+    h.update(str(summary.stat().st_mtime if summary.exists() else 0).encode())
+    for f in ("factors.py", "groups.py", "model.py"):
+        h.update((Path(__file__).parent / f).read_bytes())
+    h.update(Path(fx.fundamentals.__file__).read_bytes())
+    return h.hexdigest()[:10]
+
+
 def cached_factors(stocks: list[str], universe: pd.DataFrame, end=None,
                    sp500_then: bool = False) -> tuple[dict, pd.DataFrame]:
     """Factor ranks at every month end (and the last day of data), kept on disk because they take
@@ -74,7 +91,7 @@ def cached_factors(stocks: list[str], universe: pd.DataFrame, end=None,
     sp500_then: score only the stocks that were in the S&P 500 at each date. Returns (ranks, close)."""
     close = prices.panel(stocks, "close", end=end)
     tag = "sp500_then" if sp500_then else "current"
-    path = DATA_DIR / "selection" / f"ranks_{tag}_{close.index[-1]:%Y-%m-%d}.pkl"
+    path = DATA_DIR / "selection" / f"ranks_{tag}_{close.index[-1]:%Y-%m-%d}_{_inputs_key(stocks, universe)}.pkl"
     if path.exists():
         return pd.read_pickle(path), close
     dates = fx.month_ends(close.index)
