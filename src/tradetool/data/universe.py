@@ -74,6 +74,18 @@ def add_sec_industry(u: pd.DataFrame) -> pd.DataFrame:
     return u
 
 
+def add_sp500_dates(u: pd.DataFrame) -> pd.DataFrame:
+    """Add the date each stock joined the S&P 500 (Wikipedia, "Date added"). With it a backtest can use,
+    at every date, only the stocks that were already in the index then. That removes the worst part of
+    the survivorship bias: buying, years earlier, the stocks that later got into the index because
+    they had risen. Stocks that left the index are still missing."""
+    sp = _find(_tables(SP500_URL), "GICS Sector")
+    added = pd.to_datetime(sp.set_index("Symbol")["Date added"].str.slice(0, 10), errors="coerce")
+    u = u.drop(columns=["sp500_added"], errors="ignore")
+    u["sp500_added"] = u["ticker"].map(added).where(u["in_sp500"])
+    return u
+
+
 def load_universe() -> pd.DataFrame:
     if not UNIVERSE_FILE.exists():
         fetch_universe().to_csv(UNIVERSE_FILE, index=False)
