@@ -44,6 +44,17 @@ def test_reconcile_replaces_a_wrong_bar():
     assert fixed["close"].drop(fixed.index[4]).equals(_bars(bad)["close"].drop(fixed.index[4]))
 
 
+def test_reconcile_wrong_bar_on_the_last_day():
+    """Without a next day the bad bar must still be replaced, not taken for a corporate action that
+    rescales the whole history."""
+    bad = FLAT.copy()
+    bad[-1] = 112.0
+    fixed, fixes = reconcile(_bars(bad), _bars(FLAT), pd.Series(0.0, pd.bdate_range("2020-01-01", periods=10)))
+    assert [f["kind"] for f in fixes] == ["bar"]
+    assert fixed["close"].iloc[-1] == pytest.approx(105.0)
+    assert fixed["close"].iloc[:-1].equals(_bars(bad)["close"].iloc[:-1])
+
+
 def test_reconcile_fixes_a_missed_spinoff():
     # spin-off on day 5: the raw price drops 30%, Alpaca did not adjust it, Yahoo did
     raw = FLAT[:5] + [p * 0.7 for p in FLAT[5:]]

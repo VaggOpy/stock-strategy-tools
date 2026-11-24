@@ -134,7 +134,9 @@ def reconcile(a: pd.DataFrame, y: pd.DataFrame, market: pd.Series) -> tuple[pd.D
     k = a["close_raw"].reindex(common) / y["close_raw"].reindex(common)
     ra, ry = a["close"].reindex(common).pct_change(), y["close"].reindex(common).pct_change()
     flagged = (ra - ry).abs() > DIFF_LIMIT
-    blip = ((k / k.shift(1) - 1).abs() > 0.01) & ((k / k.shift(-1) - 1).abs() > 0.01)
+    back = (k / k.shift(-1) - 1).abs() > 0.01
+    back.iloc[-1] = True  # the last day has no next day; a jump there that the returns disagree on is a bad bar
+    blip = ((k / k.shift(1) - 1).abs() > 0.01) & back
     for d in common[blip & (flagged | flagged.shift(-1, fill_value=False))]:
         prev_k = k.shift(1)[d]
         f_a = a.at[d, "close"] / a.at[d, "close_raw"]
