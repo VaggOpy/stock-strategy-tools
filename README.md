@@ -51,6 +51,7 @@ src/tradetool/
   rules/
     schema.py            η μορφή JSON των στρατηγικών και ο έλεγχός της
     signals.py           κανόνας -> σήματα εισόδου/εξόδου
+    describe.py          ο κανόνας σε απλά ελληνικά, για να βλέπει ο χρήστης τι θα τρέξει
     library/*.json       τέσσερις κλασικές στρατηγικές
   backtest/
     engine.py            η προσομοίωση μίας μετοχής (εκτέλεση στο επόμενο άνοιγμα, stops, κόστη)
@@ -63,10 +64,15 @@ src/tradetool/
     factors.py           momentum και θεμελιώδη ανά μήνα, μόνο με ό,τι ήταν γνωστό τότε
     groups.py            ομάδες μετοχών (κλάδος SIC ή clustering) και δύναμη ομάδας
     model.py             σκορ, καλάθι των N καλύτερων, περιορισμός στις μετοχές του S&P 500 κάθε ημερομηνίας
+  llm/
+    client.py            Gemini ή Ollama με την ίδια κλήση, και cache των απαντήσεων στον δίσκο
+    prompts.py           τα κείμενα προς το LLM, φτιαγμένα από τη λίστα δεικτών και τη βιβλιοθήκη κανόνων
+    strategy.py          κείμενο -> έλεγχος -> διόρθωση -> κανόνας, και εξήγηση των αποτελεσμάτων
   charts/                γραφήματα plotly (τιμές, backtest, χάρτες ευαισθησίας)
 app/
   Home.py                streamlit run app/Home.py
-  views/                 μία σελίδα ανά αρχείο: αρχική, διαγράμματα, backtest, υπερπαράμετροι, επιλογή μετοχών
+  views/                 μία σελίδα ανά αρχείο: αρχική, διαγράμματα, backtest, υπερπαράμετροι,
+                         επιλογή μετοχών, στρατηγική με λόγια
 experiments/             ένα script ανά πείραμα, τα αποτελέσματα στο results/<όνομα script>/
 docs/                    μέθοδοι και αποτελέσματα σε κείμενο
 tests/                   pytest, μαζί με τα tests για look-ahead
@@ -103,6 +109,10 @@ copy .env.example .env
 Τα αποτελέσματα των πειραμάτων είναι ήδη στο `experiments/results/`, οπότε για να τα δει κανείς δεν χρειάζεται
 να τρέξει τίποτα. Η εφαρμογή δουλεύει και χωρίς το setup: κατεβάζει τα δεδομένα κάθε μετοχής όταν την ανοίγεις.
 
+Για τη σελίδα «Στρατηγική με λόγια» χρειάζεται ένα LLM: δωρεάν κλειδί Gemini από το
+https://aistudio.google.com/apikey στο `GEMINI_API_KEY` του `.env`, ή τοπικά το Ollama
+(`ollama pull qwen2.5:3b`). Οι υπόλοιπες σελίδες δεν το χρειάζονται.
+
 Σε Windows, αν το path του project έχει ελληνικούς χαρακτήρες, το `pip install -e .` αποτυγχάνει (η Python 3.12
 γράφει τα `.pth` σε cp1252). Με λατινικό path δουλεύει κανονικά.
 
@@ -114,6 +124,7 @@ pytest
 python experiments/classic_strategies.py
 python experiments/walkforward_methods.py
 python experiments/stock_selection.py
+python experiments/llm_rules.py
 python experiments/check_adjustments.py
 ```
 
