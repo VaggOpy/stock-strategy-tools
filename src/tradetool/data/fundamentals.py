@@ -103,33 +103,42 @@ def _raw_facts(facts: dict, concept: str) -> pd.DataFrame:
     return d[["start", "end", "val", "filed"]]
 
 
+QUARTER_DAYS = (80, 120)  # 13 weeks, or 16 weeks in a 12-12-12-16 week year (KR, COST, PEP)
+
+
 def _quarterly_flow(d: pd.DataFrame) -> pd.DataFrame:
-    """Quarter values from a mix of 3-month and year-to-date facts."""
+    """Quarter values from a mix of 3-month and year-to-date facts.
+
+    A quarter can come from its own 3-month fact, from the difference of two year-to-date facts or from
+    the year minus three quarters. The version that was public first is kept: a 3-month fact that only
+    shows up in a later filing (a restatement, a quarter table in a 10-K) must not replace the value that
+    was known before it, otherwise the quarter is missing until that later filing."""
     d = d.dropna(subset=["start"]).copy()
     d["days"] = (d["end"] - d["start"]).dt.days
-    is_q = d["days"].between(80, 100)
-
+    lo, hi = QUARTER_DAYS
     q = {}
-    for r in d[is_q].itertuples():
-        if r.end not in q or r.filed < q[r.end][1]:
-            q[r.end] = (r.val, r.filed, False)
+
+    def offer(end, val, filed, derived):
+        if end not in q or (filed, derived) < (q[end][1], q[end][2]):
+            q[end] = (val, filed, derived)
+
+    for r in d[d["days"].between(lo, hi)].itertuples():
+        offer(r.end, r.val, r.filed, False)
 
     # differences of cumulative values that share the same start (fiscal year start)
     for _, g in d.groupby("start"):
         g = g.sort_values("end")
         prev = None
         for r in g.itertuples():
-            if prev is not None and 80 <= r.days - prev.days <= 100 and r.end not in q:
-                q[r.end] = (r.val - prev.val, max(r.filed, prev.filed), True)
+            if prev is not None and lo <= r.days - prev.days <= hi:
+                offer(r.end, r.val - prev.val, max(r.filed, prev.filed), True)
             prev = r
 
     # fallback for an annual value without a 9-month value: FY minus the three known quarters
     for r in d[d["days"].between(350, 380)].itertuples():
-        if r.end in q:
-            continue
         inside = sorted(e for e in q if r.start < e < r.end)
         if len(inside) == 3:
-            q[r.end] = (r.val - sum(q[e][0] for e in inside), max([r.filed] + [q[e][1] for e in inside]), True)
+            offer(r.end, r.val - sum(q[e][0] for e in inside), max([r.filed] + [q[e][1] for e in inside]), True)
 
     out = pd.DataFrame([(e, v, f, der) for e, (v, f, der) in q.items()], columns=["end", "value", "filed", "derived"])
     return out.sort_values("end")
@@ -261,7 +270,7 @@ def quarters(f: pd.DataFrame, concept: str, date=None) -> pd.Series:
 
 def _consecutive(ends) -> bool:
     gaps = pd.Series(ends).diff().dt.days.dropna()
-    return len(gaps) > 0 and gaps.between(80, 100).all()
+    return len(gaps) > 0 and gaps.between(*QUARTER_DAYS).all()
 
 
 def ttm_of(q: pd.Series, lag: int = 0) -> float:
@@ -272,8 +281,12 @@ def ttm_of(q: pd.Series, lag: int = 0) -> float:
 
 
 def growth_of(q: pd.Series) -> float:
+    """Last 4 quarters against the 4 before them. NaN unless all 8 are consecutive, otherwise a missing
+    quarter would compare this year with a block from two years ago."""
+    if len(q) < 8 or not _consecutive(q.index[-8:]):
+        return float("nan")
     now, before = ttm_of(q), ttm_of(q, lag=4)
-    return now / before - 1 if before and before > 0 else float("nan")
+    return now / before - 1 if before > 0 else float("nan")
 
 
 def ttm(f: pd.DataFrame, concept: str, date, lag: int = 0) -> float:

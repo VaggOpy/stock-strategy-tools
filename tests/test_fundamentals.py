@@ -20,6 +20,9 @@ def facts():
         fact("2024-09-29", "2025-09-27", 380, "2025-10-31", "10-K"),
         # same quarter again in next year's 10-Q, with a restated value: must be ignored
         fact("2024-12-29", "2025-03-29", 95, "2026-05-01"),
+        # Q4 as its own 3-month fact only in next year's 10-K, restated (like EW in 2025). Until then Q4 is
+        # known as year minus nine months, and that must stay the value
+        fact("2025-06-29", "2025-09-27", 95, "2026-10-30", "10-K"),
     ]
     ocf = [
         fact("2024-09-29", "2024-12-28", 30, "2025-01-31"),
@@ -57,7 +60,7 @@ def test_not_known_before_filing_day(facts):
     assert F.ttm(f, "revenue", "2025-10-31") != F.ttm(f, "revenue", "2025-11-01")
 
 
-@pytest.mark.parametrize("date", ["2025-02-01", "2025-08-02", "2025-11-01", "2026-06-01"])
+@pytest.mark.parametrize("date", ["2025-02-01", "2025-08-02", "2025-11-01", "2026-06-01", "2026-11-02"])
 def test_no_lookahead(facts, date):
     """What we know at `date` must be the same if facts filed on or after `date` never existed."""
     full = F.parse_facts(facts)
@@ -72,6 +75,22 @@ def test_ttm_needs_four_consecutive_quarters(facts):
     f = F.parse_facts(facts)
     assert F.ttm(f, "revenue", "2025-11-01") == 380
     assert pd.isna(F.ttm(f, "revenue", "2025-08-02"))  # only 3 quarters known
+
+
+def test_sixteen_week_quarter_counts():
+    # 12-12-12-16 week fiscal year (Kroger): the first quarter is 112 days
+    ends = pd.to_datetime(["2024-05-25", "2024-08-17", "2024-11-09", "2025-02-01",
+                           "2025-05-24", "2025-08-16", "2025-11-08", "2026-01-31"])
+    q = pd.Series([16.0, 12, 12, 12, 17, 13, 13, 13], index=ends)
+    assert F.ttm_of(q) == 56
+    assert F.growth_of(q) == pytest.approx(56 / 52 - 1)
+
+
+def test_growth_needs_eight_consecutive_quarters():
+    ends = pd.date_range("2022-03-31", periods=9, freq="QE").delete(4)  # 2023-03-31 never known
+    q = pd.Series(range(10, 18), index=ends, dtype=float)
+    assert not pd.isna(F.ttm_of(q)) and not pd.isna(F.ttm_of(q, lag=4))
+    assert pd.isna(F.growth_of(q))  # the two blocks are not next to each other
 
 
 def test_failed_download_keeps_old_summary_and_goes_on(tmp_path, monkeypatch):
