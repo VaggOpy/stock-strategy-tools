@@ -68,7 +68,6 @@ def main():
     args = ap.parse_args()
     llm = Cached(Ollama(args.ollama) if args.ollama else Gemini(args.model))
     out = OUT / llm.name.replace("/", "_").replace(":", "-")
-    out.mkdir(parents=True, exist_ok=True)
 
     cases = json.loads(CASES.read_text(encoding="utf-8"))
     data = {s: prices.load(s, end=TEST_END) for s in STOCKS}
@@ -99,6 +98,9 @@ def main():
             notes.append(f"## {case['id']}\n\n{case['text']}\n\n{fact_text}\n\n{text}\n\n"
                          f"Numbers not in the facts: {made_up or 'none'}\n")
 
+    if not rows:
+        return
+    out.mkdir(parents=True, exist_ok=True)
     table = pd.DataFrame(rows)
     table.to_csv(out / "cases.csv", index=False)
     (out / "answers.json").write_text(json.dumps(answers, ensure_ascii=False, indent=1), encoding="utf-8")
