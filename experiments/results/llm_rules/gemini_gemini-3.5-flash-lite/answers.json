@@ -1,0 +1,1095 @@
+[
+ {
+  "id": "ema_10_30",
+  "rule": {
+   "name": "EMA cross",
+   "params": {
+    "fast": {
+     "default": 10,
+     "high": 50,
+     "low": 2,
+     "step": 2
+    },
+    "slow": {
+     "default": 30,
+     "high": 200,
+     "low": 10,
+     "step": 5
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "ind": "EMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$slow"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "ind": "EMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$slow"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "close_sma50",
+  "rule": {
+   "name": "SMA crossover",
+   "params": {
+    "length": {
+     "default": 50,
+     "low": 10,
+     "high": 200,
+     "step": 10
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$length"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$length"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "rsi_30_70",
+  "rule": {
+   "name": "RSI Oversold Overbought",
+   "params": {
+    "rsi_len": {
+     "default": 14,
+     "low": 2,
+     "high": 50,
+     "step": 1
+    },
+    "entry_level": {
+     "default": 30,
+     "low": 10,
+     "high": 40,
+     "step": 2
+    },
+    "exit_level": {
+     "default": 70,
+     "low": 60,
+     "high": 90,
+     "step": 2
+    }
+   },
+   "entry": [
+    {
+     "cond": "below",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$entry_level"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$exit_level"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "macd_cross_stop",
+  "rule": {
+   "name": "MACD cross",
+   "params": {
+    "fast": {
+     "default": 12,
+     "low": 2,
+     "high": 50,
+     "step": 2
+    },
+    "slow": {
+     "default": 26,
+     "low": 5,
+     "high": 200,
+     "step": 5
+    },
+    "signal": {
+     "default": 9,
+     "low": 2,
+     "high": 50,
+     "step": 2
+    },
+    "stop": {
+     "default": 2,
+     "low": 1,
+     "high": 6,
+     "step": 0.5
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "ind": "MACD",
+      "fast": "$fast",
+      "slow": "$slow",
+      "signal": "$signal",
+      "out": "macd"
+     },
+     "right": {
+      "ind": "MACD",
+      "fast": "$fast",
+      "slow": "$slow",
+      "signal": "$signal",
+      "out": "signal"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "ind": "MACD",
+      "fast": "$fast",
+      "slow": "$slow",
+      "signal": "$signal",
+      "out": "macd"
+     },
+     "right": {
+      "ind": "MACD",
+      "fast": "$fast",
+      "slow": "$slow",
+      "signal": "$signal",
+      "out": "signal"
+     }
+    }
+   ],
+   "stop_atr": "$stop"
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "breakout_20_10",
+  "rule": {
+   "name": "Donchian breakout",
+   "params": {
+    "entry_len": {
+     "default": 20,
+     "low": 5,
+     "high": 60,
+     "step": 5
+    },
+    "exit_len": {
+     "default": 10,
+     "low": 5,
+     "high": 40,
+     "step": 5
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "DC",
+      "length": "$entry_len",
+      "out": "upper",
+      "shift": 1
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "DC",
+      "length": "$exit_len",
+      "out": "lower",
+      "shift": 1
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "bb_lower_mid",
+  "rule": {
+   "name": "Bollinger band mean reversion",
+   "params": {
+    "bb_len": {
+     "default": 20,
+     "low": 5,
+     "high": 100,
+     "step": 5
+    },
+    "bb_std": {
+     "default": 2,
+     "low": 0.5,
+     "high": 4,
+     "step": 0.5
+    }
+   },
+   "entry": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "BB",
+      "length": "$bb_len",
+      "std": "$bb_std",
+      "out": "lower"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "BB",
+      "length": "$bb_len",
+      "std": "$bb_std",
+      "out": "mid"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "rsi2_trend_days",
+  "rule": {
+   "name": "RSI pullback with trend and time exit",
+   "params": {
+    "trend_len": {
+     "default": 200,
+     "low": 50,
+     "high": 300,
+     "step": 10
+    },
+    "rsi_len": {
+     "default": 2,
+     "low": 2,
+     "high": 10
+    },
+    "rsi_level": {
+     "default": 5,
+     "low": 2,
+     "high": 20,
+     "step": 1
+    },
+    "exit_sma_len": {
+     "default": 5,
+     "low": 2,
+     "high": 20,
+     "step": 1
+    },
+    "max_holding_days": {
+     "default": 5,
+     "low": 1,
+     "high": 30,
+     "step": 1
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$trend_len"
+     }
+    },
+    {
+     "cond": "below",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$rsi_level"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$exit_sma_len"
+     }
+    }
+   ],
+   "max_days": "$max_holding_days"
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "golden_cross",
+  "rule": {
+   "name": "Golden cross",
+   "params": {
+    "fast": {
+     "default": 50,
+     "low": 20,
+     "high": 100,
+     "step": 10
+    },
+    "slow": {
+     "default": 200,
+     "low": 100,
+     "high": 300,
+     "step": 10
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "ema_stack_stop",
+  "rule": {
+   "name": "EMA Trend Strategy",
+   "params": {
+    "ema_short": {
+     "default": 20,
+     "low": 5,
+     "high": 50,
+     "step": 5
+    },
+    "ema_long": {
+     "default": 50,
+     "low": 20,
+     "high": 200,
+     "step": 10
+    },
+    "stop": {
+     "default": 3,
+     "low": 1,
+     "high": 6,
+     "step": 0.5
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "ind": "EMA",
+      "length": "$ema_short"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$ema_long"
+     }
+    },
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$ema_short"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$ema_long"
+     }
+    }
+   ],
+   "stop_atr": "$stop"
+  },
+  "assumptions": [
+   "ATR period is set to default 14."
+  ],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "momentum_shift",
+  "rule": {
+   "name": "Momentum with RSI filter",
+   "params": {
+    "rsi_len": {
+     "default": 14,
+     "low": 5,
+     "high": 50,
+     "step": 1
+    },
+    "rsi_level": {
+     "default": 50,
+     "low": 30,
+     "high": 70,
+     "step": 5
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "price": "close",
+      "shift": 20
+     }
+    },
+    {
+     "cond": "above",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$rsi_level"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "price": "close",
+      "shift": 20
+     }
+    }
+   ]
+  },
+  "assumptions": [
+   "Shift value for price must be a fixed integer rather than a parameter variable."
+  ],
+  "unsupported": [],
+  "attempts": 3,
+  "problems": [
+   [
+    "entry/0/right: {'price': 'close', 'shift': '$period'} is not valid under any of the given schemas",
+    "exit/0/right: {'price': 'close', 'shift': '$period'} is not valid under any of the given schemas"
+   ],
+   [
+    "param period is defined but not used anywhere in the rule, remove it"
+   ]
+  ],
+  "ok": true
+ },
+ {
+  "id": "ema_rsi_band_days",
+  "rule": {
+   "name": "EMA and RSI strategy",
+   "params": {
+    "fast_ema": {
+     "default": 5,
+     "low": 2,
+     "high": 20,
+     "step": 1
+    },
+    "slow_ema": {
+     "default": 20,
+     "low": 5,
+     "high": 50,
+     "step": 5
+    },
+    "rsi_len": {
+     "default": 14,
+     "low": 2,
+     "high": 50,
+     "step": 2
+    },
+    "rsi_low": {
+     "default": 40,
+     "low": 10,
+     "high": 50,
+     "step": 5
+    },
+    "rsi_high": {
+     "default": 70,
+     "low": 50,
+     "high": 90,
+     "step": 5
+    },
+    "max_holding_days": {
+     "default": 15,
+     "low": 1,
+     "high": 60,
+     "step": 1
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "ind": "EMA",
+      "length": "$fast_ema"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$slow_ema"
+     }
+    },
+    {
+     "cond": "above",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$rsi_low"
+     }
+    },
+    {
+     "cond": "below",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$rsi_high"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "below",
+     "left": {
+      "ind": "EMA",
+      "length": "$fast_ema"
+     },
+     "right": {
+      "ind": "EMA",
+      "length": "$slow_ema"
+     }
+    }
+   ],
+   "max_days": "$max_holding_days"
+  },
+  "assumptions": [],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "bb_touch_reclaim",
+  "rule": {
+   "name": "Bollinger Bounce",
+   "params": {
+    "bb_len": {
+     "default": 20,
+     "low": 5,
+     "high": 100,
+     "step": 5
+    },
+    "bb_std": {
+     "default": 2.5,
+     "low": 0.5,
+     "high": 4.0,
+     "step": 0.5
+    },
+    "stop_val": {
+     "default": 1.5,
+     "low": 0.5,
+     "high": 4.0,
+     "step": 0.5
+    }
+   },
+   "entry": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "low"
+     },
+     "right": {
+      "ind": "BB",
+      "length": "$bb_len",
+      "std": "$bb_std",
+      "out": "lower"
+     }
+    },
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "BB",
+      "length": "$bb_len",
+      "std": "$bb_std",
+      "out": "lower"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "BB",
+      "length": "$bb_len",
+      "std": "$bb_std",
+      "out": "upper"
+     }
+    }
+   ],
+   "stop_atr": "$stop_val"
+  },
+  "assumptions": [
+   "ATR length defaulted to 14 as no period was specified."
+  ],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "buy_the_dip",
+  "rule": null,
+  "assumptions": [],
+  "unsupported": [
+   "Αγόρασε στα βουτήγματα όσο η μετοχή είναι σε ανοδική τάση (too vague, no specific indicators or rules provided)."
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "follow_trend",
+  "rule": {
+   "name": "Moving average trend follow",
+   "params": {
+    "fast": {
+     "default": 50,
+     "low": 10,
+     "high": 100,
+     "step": 10
+    },
+    "slow": {
+     "default": 200,
+     "low": 100,
+     "high": 300,
+     "step": 10
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ]
+  },
+  "assumptions": [
+   "Used standard lengths of 50 and 200 for the fast and slow simple moving averages."
+  ],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "oversold",
+  "rule": {
+   "name": "RSI overbought oversold",
+   "params": {
+    "rsi_len": {
+     "default": 14,
+     "low": 2,
+     "high": 30,
+     "step": 2
+    },
+    "oversold": {
+     "default": 30,
+     "low": 10,
+     "high": 40,
+     "step": 5
+    },
+    "overbought": {
+     "default": 70,
+     "low": 60,
+     "high": 90,
+     "step": 5
+    }
+   },
+   "entry": [
+    {
+     "cond": "below",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$oversold"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$overbought"
+     }
+    }
+   ]
+  },
+  "assumptions": [
+   "Used standard RSI length of 14, oversold level at 30, and overbought level at 70."
+  ],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "new_highs",
+  "rule": {
+   "name": "Breakout fail",
+   "params": {
+    "len": {
+     "default": 20,
+     "low": 5,
+     "high": 100,
+     "step": 5
+    }
+   },
+   "entry": [
+    {
+     "cond": "above",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "DC",
+      "length": "$len",
+      "out": "upper",
+      "shift": 1
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "below",
+     "left": {
+      "price": "close"
+     },
+     "right": {
+      "ind": "DC",
+      "length": "$len",
+      "out": "lower",
+      "shift": 1
+     }
+    }
+   ]
+  },
+  "assumptions": [
+   "Breakout length assumed to be 20 days.",
+   "Breakout failure defined as closing below the lower Donchian channel of the same length."
+  ],
+  "unsupported": [],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "golden_cross_volume",
+  "rule": {
+   "name": "SMA 50/200 cross",
+   "params": {
+    "fast": {
+     "default": 50,
+     "low": 10,
+     "high": 100,
+     "step": 10
+    },
+    "slow": {
+     "default": 200,
+     "low": 50,
+     "high": 300,
+     "step": 10
+    }
+   },
+   "entry": [
+    {
+     "cond": "cross_above",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "cross_below",
+     "left": {
+      "ind": "SMA",
+      "length": "$fast"
+     },
+     "right": {
+      "ind": "SMA",
+      "length": "$slow"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [
+   "Volume condition (όγκος διπλάσιος από τον μέσο όρο) is unsupported as volume is not available in the backtest engine."
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "rsi_earnings",
+  "rule": {
+   "name": "RSI oversold with exit",
+   "params": {
+    "rsi_len": {
+     "default": 14,
+     "low": 2,
+     "high": 50,
+     "step": 1
+    },
+    "entry_level": {
+     "default": 30,
+     "low": 10,
+     "high": 45,
+     "step": 1
+    },
+    "exit_level": {
+     "default": 50,
+     "low": 30,
+     "high": 90,
+     "step": 1
+    }
+   },
+   "entry": [
+    {
+     "cond": "below",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$entry_level"
+     }
+    }
+   ],
+   "exit": [
+    {
+     "cond": "above",
+     "left": {
+      "ind": "RSI",
+      "length": "$rsi_len"
+     },
+     "right": {
+      "value": "$exit_level"
+     }
+    }
+   ]
+  },
+  "assumptions": [],
+  "unsupported": [
+   "company beat its last earnings estimate"
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "price_level",
+  "rule": null,
+  "assumptions": [],
+  "unsupported": [
+   "Fixed price levels (e.g., buying below 100 dollars) are not supported because historical prices are split- and dividend-adjusted."
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "news",
+  "rule": null,
+  "assumptions": [],
+  "unsupported": [
+   "Buy the stock when there is positive news about the company and sell on negative news"
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "short",
+  "rule": null,
+  "assumptions": [],
+  "unsupported": [
+   "Short selling is not supported by the engine."
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ },
+ {
+  "id": "pe_ratio",
+  "rule": null,
+  "assumptions": [],
+  "unsupported": [
+   "Buy companies with a P/E below 15",
+   "growing revenue"
+  ],
+  "attempts": 1,
+  "problems": [],
+  "ok": true
+ }
+]

@@ -1,0 +1,23 @@
+id,kind,valid,attempts,first_try,built_rule,unsupported_reported,assumptions,problems,agreement,correct,explanation_unknown_numbers
+ema_10_30,exact,True,1,True,True,False,0,,1.0,True,0.0
+close_sma50,exact,True,1,True,True,False,0,,1.0,True,0.0
+rsi_30_70,exact,True,1,True,True,False,0,,1.0,True,0.0
+macd_cross_stop,exact,True,1,True,True,False,0,,1.0,True,0.0
+breakout_20_10,exact,True,1,True,True,False,0,,1.0,True,0.0
+bb_lower_mid,exact,True,1,True,True,False,0,,1.0,True,0.0
+rsi2_trend_days,exact,True,1,True,True,False,0,,1.0,True,0.0
+golden_cross,exact,True,1,True,True,False,0,,1.0,True,0.0
+ema_stack_stop,exact,True,1,True,True,False,1,,1.0,True,0.0
+momentum_shift,exact,True,3,False,True,False,1,"entry/0/right: {'price': 'close', 'shift': '$period'} is not valid under any of the given schemas | param period is defined but not used anywhere in the rule, remove it",1.0,True,0.0
+ema_rsi_band_days,exact,True,1,True,True,False,0,,1.0,True,0.0
+bb_touch_reclaim,exact,True,1,True,True,False,1,,1.0,True,0.0
+buy_the_dip,vague,True,1,True,False,True,0,,0.0,False,
+follow_trend,vague,True,1,True,True,False,1,,0.7124241197895589,False,0.0
+oversold,vague,True,1,True,True,False,1,,1.0,True,0.0
+new_highs,vague,True,1,True,True,False,2,,0.8354512343180899,False,0.0
+golden_cross_volume,partial,True,1,True,True,True,0,,1.0,True,0.0
+rsi_earnings,partial,True,1,True,True,True,0,,1.0,True,0.0
+price_level,unsupported,True,1,True,False,True,0,,,True,
+news,unsupported,True,1,True,False,True,0,,,True,
+short,unsupported,True,1,True,False,True,0,,,True,
+pe_ratio,unsupported,True,1,True,False,True,0,,,True,
