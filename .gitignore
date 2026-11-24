@@ -1,0 +1,28 @@
+# Secrets
+.env
+*_keys.txt
+*_key.txt
+
+# Private notes
+/private/
+
+# Data cache (re-downloadable). Leading slash: only the top-level folder, not src/tradetool/data
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Optuna studies, notebooks checkpoints, editors, OS
+*.db
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.streamlit/secrets.toml
+Thumbs.db
+desktop.ini
+~$*

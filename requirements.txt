@@ -1,0 +1,27 @@
+# Core data
+numpy>=2.0
+pandas>=2.2
+pyarrow>=15
+requests>=2.31
+python-dotenv>=1.0
+
+# Price data (backup source; Alpaca is called directly with requests)
+yfinance>=0.2.50
+
+# Charts and GUI
+plotly>=5.20
+streamlit>=1.40
+
+# Optimisation, statistics, clustering
+optuna>=4.0
+scipy>=1.13
+scikit-learn>=1.5
+
+# Strategy rule validation (part 4)
+jsonschema>=4.22
+
+# LLM (part 4) - Gemini; Ollama is called over HTTP with requests
+google-genai>=1.0
+
+# Tests
+pytest>=8.0
