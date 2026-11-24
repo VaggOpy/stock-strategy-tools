@@ -105,6 +105,9 @@ def test_validation_messages():
     assert validate({"entry": [{"cond": "above", "left": {"ind": "SMA"}, "right": {"value": 1}}], "code": "x"})
     for rule in RULES.values():
         assert validate(rule) == []
+    unused = {"params": {"n": {"default": 20, "low": 5, "high": 50}},
+              "entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 20}}]}
+    assert validate(unused) == ["param n is defined but not used anywhere in the rule, remove it"]
 
 
 def test_metrics_known_values():

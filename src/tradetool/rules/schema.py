@@ -87,6 +87,9 @@ def validate(rule: dict) -> list[str]:
             errors.append(f"param {name}: default {p['default']} is outside [{p['low']}, {p['high']}]")
     for name in sorted(_refs(rule) - set(params)):
         errors.append(f"${name} is used but not defined in params")
+    # an unused param would be a slider that changes nothing and a useless axis for the optimizer
+    for name in sorted(set(params) - _refs(rule)):
+        errors.append(f"param {name} is defined but not used anywhere in the rule, remove it")
 
     for op in _operands(rule):
         if "ind" not in op:
@@ -175,6 +178,7 @@ def resolve(rule: dict, values: dict | None = None) -> dict:
     vals = {k: p["default"] for k, p in rule.get("params", {}).items()}
     vals.update(values or {})
     out = _fill(rule, vals)
+    out.pop("params", None)  # nothing refers to them any more
     errors = _value_errors(out)
     if errors:
         raise ValueError("invalid values:\n" + "\n".join(errors))
