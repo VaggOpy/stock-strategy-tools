@@ -1,9 +1,11 @@
-"""Daily prices from Alpaca (main source), with Yahoo as a fallback. Cached as one parquet per ticker.
+"""Daily prices from Alpaca (main source), checked against Yahoo, which is also the fallback.
+Cached as one parquet per ticker.
 
 Adjusted prices change backwards in time after every split or dividend, so the cache is not
-appended to: a refresh downloads the full history again (about 2 minutes for ~540 tickers).
+appended to: a refresh downloads the full history again (about 6 minutes for ~540 tickers, with the Yahoo check).
 
 Columns: open, high, low, close, volume (split and dividend adjusted) and close_raw (as traded).
+Without Alpaca keys everything comes from Yahoo, and close_raw is then only split adjusted.
 """
 from __future__ import annotations
 
@@ -18,6 +20,10 @@ from tradetool.config import PRICES_DIR, env
 ALPACA_BARS = "https://data.alpaca.markets/v2/stocks/bars"
 START = "2016-01-01"  # Alpaca SIP history starts here
 MANIFEST = PRICES_DIR / "_manifest.csv"
+
+
+def has_alpaca_keys() -> bool:
+    return bool(env("ALPACA_API_KEY_ID") and env("ALPACA_API_SECRET_KEY"))
 
 
 def _alpaca_headers():
@@ -98,25 +104,103 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def download(symbols: list[str], start=START) -> pd.DataFrame:
-    """Download (or re-download) symbols and write the cache. Returns a summary per symbol."""
-    PRICES_DIR.mkdir(parents=True, exist_ok=True)
-    adj = fetch_alpaca(symbols, start, adjustment="all")
-    raw = fetch_alpaca(symbols, start, adjustment="raw")
+DIFF_LIMIT = 0.02   # daily returns of the two sources differing by more than this get checked
+MAX_REFEREE = 0.10  # Yahoo's version is only accepted if it is this close to the market move
+# Both sources show another company's prices under this symbol before the listing date.
+LISTED = {"SW": "2024-07-08"}  # Smurfit WestRock; before it the symbol carries WestRock's history
+FIXES = PRICES_DIR / "_fixes.csv"
+OHLC = ["open", "high", "low", "close"]
 
-    summary = []
+
+def reconcile(a: pd.DataFrame, y: pd.DataFrame, market: pd.Series) -> tuple[pd.DataFrame, list[dict]]:
+    """Correct Alpaca bars with Yahoo where the two disagree. Returns the bars and a list of fixes.
+
+    Comparing all symbols (experiments/check_adjustments.py) showed two kinds of errors:
+    1. A wrong bar: on some days of March 2020 Alpaca's close is not the official close (SPY 255.24
+       instead of 248.11 on 2020-03-12). The raw closes of the two sources then differ on that day
+       only. The bar is replaced by Yahoo's.
+    2. A corporate action (mostly spin-offs) adjusted differently, e.g. RTX -71% on 2020-04-03 in
+       Alpaca, -8% in Yahoo. The raw prices agree, only the adjustment differs. We keep the version
+       whose return is closer to the market (SPY) that day, but take Yahoo's only if it is within
+       MAX_REFEREE of it: Yahoo has its own wrong adjustments (DHR +61% on 2016-07-05). Taking Yahoo's
+       version means rescaling everything before that day, like any adjustment does.
+    """
+    a = a.copy()
+    common = a.index.intersection(y.index)
+    if len(common) < 3:
+        return a, []
+    fixes = []
+    # raw close ratio, constant except at splits (Yahoo's "Close" is split adjusted, Alpaca's raw is not)
+    k = a["close_raw"].reindex(common) / y["close_raw"].reindex(common)
+    ra, ry = a["close"].reindex(common).pct_change(), y["close"].reindex(common).pct_change()
+    flagged = (ra - ry).abs() > DIFF_LIMIT
+    blip = ((k / k.shift(1) - 1).abs() > 0.01) & ((k / k.shift(-1) - 1).abs() > 0.01)
+    for d in common[blip & (flagged | flagged.shift(-1, fill_value=False))]:
+        prev_k = k.shift(1)[d]
+        f_a = a.at[d, "close"] / a.at[d, "close_raw"]
+        f_y = y.at[d, "close"] / y.at[d, "close_raw"]
+        for col in OHLC:
+            a.at[d, col] = y.at[d, col] / f_y * prev_k * f_a
+        a.at[d, "close_raw"] = y.at[d, "close_raw"] * prev_k
+        fixes.append({"date": d.date(), "kind": "bar", "alpaca": ra[d], "yahoo": ry[d]})
+
+    ra = a["close"].reindex(common).pct_change()
+    m = market.reindex(common)
+    for d in reversed(common[(ra - ry).abs() > DIFF_LIMIT]):
+        err_a, err_y = abs(ra[d] - m[d]), abs(ry[d] - m[d])
+        if err_y < err_a and err_y < MAX_REFEREE:
+            a.loc[a.index < d, OHLC] *= (1 + ra[d]) / (1 + ry[d])
+            fixes.append({"date": d.date(), "kind": "adjustment", "alpaca": ra[d], "yahoo": ry[d]})
+    return a, fixes
+
+
+def _market() -> pd.Series:
+    p = _path("SPY")
+    return pd.read_parquet(p)["close"].pct_change() if p.exists() else pd.Series(dtype=float)
+
+
+def download(symbols: list[str], start=START) -> pd.DataFrame:
+    """Download (or re-download) symbols and write the cache. Returns a summary per symbol.
+    SPY goes first, it is the market reference when the sources are reconciled."""
+    PRICES_DIR.mkdir(parents=True, exist_ok=True)
+    symbols = sorted(symbols, key=lambda t: t != "SPY")
+    if has_alpaca_keys():
+        adj = fetch_alpaca(symbols, start, adjustment="all")
+        raw = fetch_alpaca(symbols, start, adjustment="raw")
+    else:  # no keys (e.g. someone who just cloned the repo): Yahoo only, nothing to check it against
+        adj = raw = {}
+
+    summary, all_fixes = [], []
     for sym in symbols:
+        fixes = []
         if sym in adj and sym in raw:
             df = adj[sym].join(raw[sym]["close"].rename("close_raw"))
             source = "alpaca"
+            try:
+                y = fetch_yahoo(sym, start)
+            except Exception:  # yfinance raises many kinds of errors when offline or rate limited
+                y = pd.DataFrame()
+            if y.empty:
+                source = "alpaca (not checked)"
+            else:
+                market = df["close"].pct_change() if sym == "SPY" else _market()
+                df, fixes = reconcile(df, y, market)
         else:
-            df = fetch_yahoo(sym, start)
+            try:
+                df = fetch_yahoo(sym, start)
+            except Exception:
+                df = pd.DataFrame()
             source = "yahoo" if not df.empty else "missing"
         n = len(df)
-        df = clean(df) if n else df
+        if sym in LISTED:
+            df = df[df.index >= pd.Timestamp(LISTED[sym])]
+        df = clean(df) if len(df) else df
         if not df.empty:
             df.to_parquet(_path(sym))
+            fixes = [f for f in fixes if pd.Timestamp(f["date"]) >= df.index[0]]  # only the part we keep
+        all_fixes += [{"ticker": sym, **f} for f in fixes]
         summary.append({"ticker": sym, "source": source, "rows": len(df), "dropped": n - len(df),
+                        "fixed_days": len(fixes),
                         "first": df.index.min().date() if len(df) else None,
                         "last": df.index.max().date() if len(df) else None,
                         "downloaded": dt.date.today()})
@@ -126,6 +210,12 @@ def download(symbols: list[str], start=START) -> pd.DataFrame:
         old = pd.read_csv(MANIFEST)
         summary = pd.concat([old[~old["ticker"].isin(summary["ticker"])], summary])
     summary.sort_values("ticker").to_csv(MANIFEST, index=False)
+
+    fx = pd.DataFrame(all_fixes, columns=["ticker", "date", "kind", "alpaca", "yahoo"])
+    if FIXES.exists():
+        old = pd.read_csv(FIXES)
+        fx = pd.concat([old[~old["ticker"].isin(symbols)], fx])
+    fx.sort_values(["ticker", "date"]).to_csv(FIXES, index=False)
     return summary
 
 
