@@ -18,11 +18,12 @@ from tradetool.config import ROOT, TEST_END, TEST_START
 from tradetool.data import prices
 from tradetool.data.universe import load_universe
 from tradetool.optimize.search import default_index, grid, returns_matrix, sharpe
-from tradetool.optimize.walkforward import folds, walk_forward, window
+from tradetool.optimize.walkforward import folds, oos_returns, walk_forward, window
 from tradetool.rules.schema import library
 
 OUT = ROOT / "experiments" / "results"
 FIRST_TEST = "2020-01-01"
+COST_BPS = 5
 
 
 def fast_below_slow(v):
@@ -47,14 +48,15 @@ def one_stock(args):
     name, ticker = args
     rule, axes, shape, default = setup(name)
     df = prices.load(ticker, end=TEST_END)
-    R = returns_matrix(df, rule, axes, TEST_START, valid=SEARCH[name][1])
+    R, P = returns_matrix(df, rule, axes, TEST_START, valid=SEARCH[name][1])
     fl = folds(R.index[-1], FIRST_TEST)
-    rows, oos = walk_forward(R, shape, default, fl)
+    rows, oos = walk_forward(R, P, shape, default, fl, cost_bps=COST_BPS)
     for r in rows:
         r.update(rule=name, ticker=ticker)
     s_in = np.array([sharpe(window(R, f.train_start, f.train_end)) for f in fl])
-    test = R[R.index >= FIRST_TEST]
-    return name, ticker, rows, oos, s_in, test
+    # test windows plus a few days before, the pooled switch needs the position on the last train day
+    keep = R.index >= pd.Timestamp(FIRST_TEST) - pd.Timedelta(days=10)
+    return name, ticker, rows, oos, s_in, R[keep], P[keep]
 
 
 def tickers():
@@ -91,13 +93,14 @@ def main():
         mean_in = np.nanmean(np.stack([r[4] for r in results]), axis=0)
         pooled_cols = [int(np.nanargmax(m)) for m in mean_in]
         oos_by_method: dict[str, dict] = {}
-        for _, ticker, rows, oos, s_in, test in results:
+        for _, ticker, rows, oos, s_in, R, P in results:
             all_rows += rows
             for m, r in oos.items():
                 oos_by_method.setdefault(m, {})[ticker] = r
-            parts = []
+            parts, prev = [], None
             for n, f in enumerate(fl):
-                r = window(test, f.test_start, f.test_end)[pooled_cols[n]].astype(float)
+                r = oos_returns(R, P, f, [pooled_cols[n]], prev, COST_BPS)
+                prev = [pooled_cols[n]]
                 fixed_row = next(x for x in rows if x["fold"] == n and x["method"] == "fixed")
                 all_rows.append({**fixed_row, "method": "pooled", "cols": [pooled_cols[n]],
                                  "is_sharpe": float(s_in[n, pooled_cols[n]]),

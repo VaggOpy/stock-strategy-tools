@@ -3,8 +3,9 @@
 Every combination is run once over the whole period and only its daily returns are kept. A window
 (train or test) is then just a slice of rows. This is allowed because the engine is causal: the
 return on day t depends only on data up to day t (tests/test_backtest.py checks it), so slicing the
-full run gives the same numbers as a run that stopped at the end of the window. Positions opened
-before a window are carried into it, as they would be in real trading.
+full run gives the same numbers as a run that stopped at the end of the window. For the in-sample
+score, positions opened before the train window are carried into it. When the parameters change
+between folds, walkforward.test_returns handles the switch.
 """
 from __future__ import annotations
 
@@ -34,28 +35,35 @@ def combos(axes: dict[str, np.ndarray]) -> list[dict]:
 
 
 def default_index(rule: dict, axes: dict[str, np.ndarray]) -> int:
-    pos = [int(np.abs(v - rule["params"][n]["default"]).argmin()) for n, v in axes.items()]
+    """Column of the rule's default values. The default must be on the grid, otherwise the "fixed"
+    method would quietly run some other value."""
+    pos = []
+    for n, v in axes.items():
+        hit = np.flatnonzero(np.isclose(v, rule["params"][n]["default"]))
+        if len(hit) == 0:
+            raise ValueError(f"default {n}={rule['params'][n]['default']} is not on the grid {v.tolist()}")
+        pos.append(int(hit[0]))
     return int(np.ravel_multi_index(pos, [len(v) for v in axes.values()]))
 
 
 def returns_matrix(df: pd.DataFrame, rule: dict, axes: dict, start, end=None, cost_bps=5.0,
-                   valid=None) -> pd.DataFrame:
-    """Daily returns from `start`, one column per combination. Combinations rejected by valid(values)
-    (e.g. fast EMA longer than slow) are NaN."""
+                   valid=None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Daily returns from `start`, one column per combination, and the position (1 = holding) at each
+    close. Combinations rejected by valid(values) (e.g. fast EMA longer than slow) are NaN."""
     cache: dict = {}
     if end is not None:
         df = df[df.index <= pd.Timestamp(end)]
-    cols = {}
+    idx = df.index[df.index.searchsorted(pd.Timestamp(start)):]
+    n = len(combos(axes))
+    R = np.full((len(idx), n), np.nan, dtype=np.float32)
+    P = np.full((len(idx), n), np.nan, dtype=np.float32)
     for i, values in enumerate(combos(axes)):
         if valid is not None and not valid(values):
             continue
-        eq = run(df, rule, values, start=start, cost_bps=cost_bps, cache=cache).equity
-        cols[i] = eq.pct_change().fillna(0.0).to_numpy(np.float32)
-    idx = df.index[df.index.searchsorted(pd.Timestamp(start)):]
-    out = pd.DataFrame(np.nan, index=idx, columns=range(len(combos(axes))), dtype=np.float32)
-    for i, r in cols.items():
-        out[i] = r
-    return out
+        res = run(df, rule, values, start=start, cost_bps=cost_bps, cache=cache)
+        R[:, i] = res.equity.pct_change().fillna(0.0).to_numpy()
+        P[:, i] = res.position.to_numpy()
+    return pd.DataFrame(R, index=idx), pd.DataFrame(P, index=idx)
 
 
 def sharpe(r) -> np.ndarray:

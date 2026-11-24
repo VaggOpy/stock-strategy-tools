@@ -89,10 +89,30 @@ def choose(score: np.ndarray, shape, default: int, k=5, n_trials=30, seed=0) -> 
     }
 
 
-def walk_forward(R: pd.DataFrame, shape, default: int, fold_list: list[Fold], **kw):
-    """Returns (rows, oos): one row per fold and method, and the test-window daily returns of each
-    method joined over all folds."""
-    rows, oos = [], {}
+def oos_returns(R: pd.DataFrame, P: pd.DataFrame, f: Fold, cols: list[int], prev: list[int] | None,
+                 cost_bps: float) -> pd.Series:
+    """Daily returns of the chosen column(s) in the test window of fold f.
+
+    If the choice is the same as in the previous fold, the position simply continues. Otherwise the
+    old position is sold at the last close before the window (an order that can be placed in advance)
+    and the new one is bought at the close of the first test day, when its state is known. The first
+    day then earns nothing and pays the costs of both trades. Taking the new rule's return for that
+    day instead would mean holding its position since a close where it had not been chosen yet."""
+    r = window(R, f.test_start, f.test_end)[cols].mean(axis=1).astype(float)
+    if prev is not None and sorted(prev) == sorted(cols):
+        return r
+    before = P[P.index < f.test_start]
+    old = float(before[prev].iloc[-1].mean()) if prev is not None and len(before) else 0.0
+    new = float(window(P, f.test_start, f.test_end)[cols].iloc[0].mean())
+    r.iloc[0] = -(old + new) * cost_bps / 1e4
+    return r
+
+
+def walk_forward(R: pd.DataFrame, P: pd.DataFrame, shape, default: int, fold_list: list[Fold],
+                 cost_bps: float = 5.0, **kw):
+    """R, P from search.returns_matrix. Returns (rows, oos): one row per fold and method, and the
+    test-window daily returns of each method joined over all folds."""
+    rows, oos, prev = [], {}, {}
     for n, f in enumerate(fold_list):
         train, test = window(R, f.train_start, f.train_end), window(R, f.test_start, f.test_end)
         if len(train) < 200 or len(test) < 20:
@@ -103,7 +123,8 @@ def walk_forward(R: pd.DataFrame, shape, default: int, fold_list: list[Fold], **
             warnings.simplefilter("ignore")  # constant input, e.g. a stock where nothing traded
             rho = spearmanr(s_in[ok], s_out[ok]).statistic if ok.sum() > 2 else np.nan
         for method, cols in choose(s_in, shape, default, seed=n, **kw).items():
-            r = test[cols].mean(axis=1)
+            r = oos_returns(R, P, f, cols, prev.get(method), cost_bps)
+            prev[method] = cols
             oos.setdefault(method, []).append(r)
             rows.append({"fold": n, "test_start": f.test_start, "method": method, "cols": cols,
                          "is_sharpe": float(np.nanmean(s_in[cols])), "oos_sharpe": float(sharpe(r.to_numpy())),

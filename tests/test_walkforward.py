@@ -4,7 +4,7 @@ import pytest
 
 from tradetool.backtest.engine import run
 from tradetool.optimize.search import combos, default_index, grid, returns_matrix, sharpe
-from tradetool.optimize.walkforward import choose, folds, smooth, walk_forward
+from tradetool.optimize.walkforward import choose, folds, smooth, oos_returns, walk_forward
 from tradetool.rules.schema import library
 
 from helpers import random_prices
@@ -27,7 +27,7 @@ def test_folds_do_not_overlap():
 
 def test_matrix_column_is_a_backtest():
     df = random_prices(2000)
-    R = returns_matrix(df, RULE, AXES, START)
+    R, P = returns_matrix(df, RULE, AXES, START)
     values = {"fast": 10, "slow": 50}
     i = combos(AXES).index(values)
     eq = run(df, RULE, values, start=START).equity
@@ -67,8 +67,8 @@ def test_walk_forward_no_lookahead():
     other.loc[after] = random_prices(2600, seed=7).loc[after].to_numpy()
 
     fl = folds(df.index[-1])
-    rows_a, oos_a = walk_forward(returns_matrix(df, RULE, AXES, START), SHAPE, 4, fl, n_trials=8)
-    rows_b, oos_b = walk_forward(returns_matrix(other, RULE, AXES, START), SHAPE, 4, fl, n_trials=8)
+    rows_a, oos_a = walk_forward(*returns_matrix(df, RULE, AXES, START), SHAPE, 4, fl, n_trials=8)
+    rows_b, oos_b = walk_forward(*returns_matrix(other, RULE, AXES, START), SHAPE, 4, fl, n_trials=8)
     a, b = pd.DataFrame(rows_a), pd.DataFrame(rows_b)
     known = a["test_start"] <= T
     assert known.sum() >= 5 * 3  # folds 2020, 2021, 2022 for each method
@@ -84,3 +84,19 @@ def test_default_index():
     i = default_index(RULE, axes)
     pos = np.unravel_index(i, [len(v) for v in axes.values()])
     assert axes["fast"][pos[0]] == 20 and axes["slow"][pos[1]] == 50
+
+
+def test_switch_has_no_free_overnight():
+    """When the choice changes, the first test day earns nothing and pays the switch costs. If the
+    choice stays the same, the position just continues."""
+    idx = pd.bdate_range("2019-12-02", "2020-03-31")
+    R = pd.DataFrame({0: 0.01, 1: 0.02}, index=idx, dtype=float)
+    P = pd.DataFrame({0: 1.0, 1: 1.0}, index=idx)
+    f = folds("2020-03-31", "2020-01-01", test_years=1)[0]
+    switched = oos_returns(R, P, f, [1], [0], cost_bps=10)
+    assert switched.iloc[0] == pytest.approx(-0.002)
+    assert (switched.iloc[1:] == 0.02).all()
+    same = oos_returns(R, P, f, [1], [1], cost_bps=10)
+    assert (same == 0.02).all()
+    first = oos_returns(R, P, f, [1], None, cost_bps=10)
+    assert first.iloc[0] == pytest.approx(-0.001)
