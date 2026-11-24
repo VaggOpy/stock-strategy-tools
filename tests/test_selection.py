@@ -41,10 +41,10 @@ def test_history_equals_direct_point_in_time():
 
 def test_fundamental_panel_is_point_in_time_and_goes_stale(monkeypatch):
     f = long_facts()
-    monkeypatch.setattr(fx, "fundamental_history", lambda t: pd.DataFrame({
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: {
         "rev_growth": F.history(f, "revenue", F.growth_of),
         "eps_growth": F.history(f, "eps_diluted", F.growth_of),
-        "ocf_ttm": F.history(f, "op_cash_flow", F.ttm_of)}))
+        "ocf_ttm": F.history(f, "op_cash_flow", F.ttm_of)})
     dates = pd.date_range("2022-01-31", "2024-12-31", freq="ME")
     p = fx.fundamental_panel(["X"], dates)["rev_growth"]["X"]
     for d in dates:
@@ -54,6 +54,21 @@ def test_fundamental_panel_is_point_in_time_and_goes_stale(monkeypatch):
             assert p[d] == pytest.approx(direct, nan_ok=True), d
         else:
             assert np.isnan(p[d]), d  # nothing filed for too long
+
+
+def test_fundamental_panel_does_not_carry_an_old_value(monkeypatch):
+    """A filing after which growth cannot be computed makes the field NaN, it does not bring back the
+    value of an earlier filing (ADI 2020-2022). Each field ages from its own last filing."""
+    days = pd.to_datetime(["2021-02-01", "2021-05-01", "2021-08-01"])
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: {
+        "eps_growth": pd.Series([0.2, np.nan, np.nan], index=days),
+        "rev_growth": pd.Series([0.1], index=days[:1])})
+    p = fx.fundamental_panel(["X"], pd.to_datetime(["2021-03-31", "2021-06-30", "2021-09-30"]))
+    assert p["eps_growth"]["X"].iloc[0] == 0.2
+    assert p["eps_growth"]["X"].isna().iloc[1:].all()
+    assert p["rev_growth"]["X"].iloc[1] == 0.1      # 150 days old
+    assert np.isnan(p["rev_growth"]["X"].iloc[2])   # 241 days old
+    assert p["ocf_ttm"]["X"].isna().all()
 
 
 def test_momentum_skips_the_last_month():
@@ -128,7 +143,7 @@ def universe_prices(n_stocks=30, n_days=900, seed=0):
 
 
 def run_selection(open_, close, u, monkeypatch):
-    monkeypatch.setattr(fx, "fundamental_history", lambda t: pd.DataFrame())  # no fundamentals here
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: {})  # no fundamentals here
     dates = fx.month_ends(close.index, close.index[300])
     ranks = model.build_factors(close, dates, u, n_clusters=5)
     s = model.score(ranks, {"momentum": 1, "group_sic": 1, "group_cluster": 1})
@@ -155,7 +170,7 @@ def test_selection_has_no_lookahead(monkeypatch):
 
 def test_members_limit_who_is_scored(monkeypatch):
     open_, close, u = universe_prices()
-    monkeypatch.setattr(fx, "fundamental_history", lambda t: pd.DataFrame())
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: {})
     dates = fx.month_ends(close.index, close.index[300])
     u["sp500_added"] = [None] * 10 + [str(dates[5].date())] * 10 + ["1990-01-01"] * 10
     members = model.sp500_members(u, dates, close.columns)

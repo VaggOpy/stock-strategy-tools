@@ -58,7 +58,7 @@ def test_selection_results_unchanged(monkeypatch):
     from tradetool.selection import factors as fx
     from tradetool.selection import model
 
-    monkeypatch.setattr(fx, "fundamental_history", lambda t: pd.DataFrame())
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: {})
     open_, close, u = universe_prices()
     dates = fx.month_ends(close.index, close.index[300])
     s = model.score(model.build_factors(close, dates, u, n_clusters=5),

@@ -6,6 +6,7 @@ rank among the stocks that have it on that date, so the factors can be added tog
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from tradetool.data import fundamentals
@@ -36,40 +37,42 @@ def momentum(close: pd.DataFrame, dates) -> dict[str, pd.DataFrame]:
     return {k: v.where(ok) for k, v in out.items()}
 
 
-def fundamental_history(ticker: str) -> pd.DataFrame:
-    """Revenue growth, EPS growth and operating cash flow (all over the last 12 months against the 12
-    before), each from the day after the filing that made it known."""
+def fundamental_history(ticker: str) -> dict[str, pd.Series]:
+    """Revenue growth, EPS growth (last 12 months against the 12 before) and operating cash flow of the
+    last 12 months, each recomputed after every filing of that item and usable from the next day."""
     try:
         f = fundamentals.load(ticker)
     except KeyError:
-        return pd.DataFrame()
-    cols = {
+        return {}
+    return {
         "rev_growth": fundamentals.history(f, "revenue", fundamentals.growth_of),
         "eps_growth": fundamentals.history(f, "eps_diluted", fundamentals.growth_of),
         "ocf_ttm": fundamentals.history(f, "op_cash_flow", fundamentals.ttm_of),
     }
-    return pd.DataFrame(cols).sort_index()
 
 
 MAX_AGE_DAYS = 200  # quarterly filers file at most ~130 days apart; older values are stale
 
 
 def fundamental_panel(tickers: list[str], dates) -> dict[str, pd.DataFrame]:
-    """dates x tickers for each fundamental field, the latest value known at each date. A value older
-    than MAX_AGE_DAYS (the company stopped filing, or files only once a year) counts as missing."""
+    """dates x tickers for each fundamental field, the value after the last filing of that item made
+    usable on or before each date. If that filing gave NaN (e.g. a quarter is missing) the field is NaN,
+    not an older value. A value older than MAX_AGE_DAYS (the company stopped filing, or files only once
+    a year) counts as missing."""
     dates = pd.DatetimeIndex(dates)
     fields: dict[str, dict] = {"rev_growth": {}, "eps_growth": {}, "ocf_ttm": {}}
     for t in tickers:
         h = fundamental_history(t)
-        if h.empty:
-            continue
-        # value at date d = last filing made usable on or before d
-        h = h.assign(_since=h.index)
-        at = h.reindex(h.index.union(dates)).ffill().reindex(dates)
-        fresh = (dates - pd.DatetimeIndex(at["_since"])).days <= MAX_AGE_DAYS
         for k in fields:
-            if k in at:
-                fields[k][t] = at[k].where(fresh)
+            s = h.get(k)
+            if s is None or len(s) == 0:
+                continue
+            s = s.sort_index()
+            pos = s.index.searchsorted(dates, side="right") - 1
+            last = pos.clip(0)
+            age = (dates - s.index[last]).days
+            fields[k][t] = pd.Series(np.where((pos >= 0) & (age <= MAX_AGE_DAYS), s.to_numpy()[last], np.nan),
+                                     index=dates)
     return {k: pd.DataFrame(v, index=dates).reindex(columns=tickers) for k, v in fields.items()}
 
 
