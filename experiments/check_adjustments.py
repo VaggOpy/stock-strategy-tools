@@ -8,7 +8,6 @@ Run: python experiments/check_adjustments.py
 """
 import time
 
-import numpy as np
 import pandas as pd
 
 from tradetool.config import ROOT
