@@ -14,20 +14,20 @@
  {
   "test_year": 2022,
   "momentum": 0.0,
-  "fundamentals": 1.0,
-  "group_sic": 0.0
+  "fundamentals": 0.75,
+  "group_sic": 0.25
  },
  {
   "test_year": 2023,
-  "momentum": 0.75,
-  "fundamentals": 0.0,
+  "momentum": 0.0,
+  "fundamentals": 0.75,
   "group_sic": 0.25
  },
  {
   "test_year": 2024,
   "momentum": 0.0,
-  "fundamentals": 1.0,
-  "group_sic": 0.0
+  "fundamentals": 0.5,
+  "group_sic": 0.5
  },
  {
   "test_year": 2025,
