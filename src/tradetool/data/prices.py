@@ -106,7 +106,7 @@ def download(symbols: list[str], start=START) -> pd.DataFrame:
 
     summary = []
     for sym in symbols:
-        if sym in adj:
+        if sym in adj and sym in raw:
             df = adj[sym].join(raw[sym]["close"].rename("close_raw"))
             source = "alpaca"
         else:

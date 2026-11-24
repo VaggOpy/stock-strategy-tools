@@ -50,7 +50,7 @@ def run(df: pd.DataFrame, rule: dict, values: dict | None = None, start=None, en
     def sell(i, price, why):
         nonlocal cash, shares
         cash = shares * price * (1 - cost)
-        cur.update(exit_date=df.index[i], exit_price=price, reason=why)
+        cur.update(exit_date=df.index[i], exit_price=price, reason=why, pnl=cash - cur["cash_in"])
         cur["return"] = cash / cur.pop("cash_in") - 1
         trades.append(cur)
         shares = 0.0
@@ -80,14 +80,16 @@ def run(df: pd.DataFrame, rule: dict, values: dict | None = None, start=None, en
         equity[i] = cash + shares * c[i]
 
     if shares > 0:  # still open at the end: valued at the last close, no exit cost
-        cur.update(exit_date=pd.NaT, exit_price=c[-1], reason="open")
+        cur.update(exit_date=pd.NaT, exit_price=c[-1], reason="open", pnl=shares * c[-1] - cur["cash_in"])
         cur["return"] = shares * c[-1] / cur.pop("cash_in") - 1
         trades.append(cur)
 
-    t = pd.DataFrame(trades, columns=["entry_date", "entry_price", "exit_date", "exit_price", "reason", "return", "i"])
+    t = pd.DataFrame(trades, columns=["entry_date", "entry_price", "exit_date", "exit_price", "reason", "return",
+                                      "pnl", "i"])
     end_i = [n - 1 if pd.isna(d) else df.index.get_loc(d) for d in t["exit_date"]]
     t["days"] = np.array(end_i, dtype=int) - t["i"].to_numpy(dtype=int)
     t = t.drop(columns="i").astype({"entry_date": df.index.dtype, "exit_date": df.index.dtype,
-                                    "entry_price": float, "exit_price": float, "return": float, "reason": "str"})
+                                    "entry_price": float, "exit_price": float, "return": float, "pnl": float,
+                                    "reason": "str"})
     idx = df.index[s:]
     return Result(pd.Series(equity[s:], idx, name="equity"), pd.Series(position[s:], idx, name="position"), t, rule)

@@ -11,6 +11,8 @@ YEAR = 252
 
 def metrics(equity: pd.Series, trades: pd.DataFrame | None = None, position: pd.Series | None = None) -> dict:
     equity = equity.dropna()
+    if len(equity) < 2:
+        return {k: np.nan for k in ("total_return", "cagr", "volatility", "sharpe", "max_drawdown", "calmar")}
     r = equity.pct_change().dropna()
     years = (equity.index[-1] - equity.index[0]).days / 365.25
     total = equity.iloc[-1] / equity.iloc[0] - 1
@@ -31,8 +33,10 @@ def metrics(equity: pd.Series, trades: pd.DataFrame | None = None, position: pd.
         m["trades"] = len(trades)
         m["win_rate"] = (ret > 0).mean() if len(ret) else np.nan
         m["avg_trade"] = ret.mean() if len(ret) else np.nan
-        loss = -ret[ret < 0].sum()
-        m["profit_factor"] = ret[ret > 0].sum() / loss if loss > 0 else np.nan
+        # in money, not in % per trade: with all capital in every trade, later trades are bigger
+        pnl = trades["pnl"]
+        loss = -pnl[pnl < 0].sum()
+        m["profit_factor"] = pnl[pnl > 0].sum() / loss if loss > 0 else np.nan
         m["avg_days"] = trades["days"].mean() if len(trades) else np.nan
     return m
 

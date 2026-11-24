@@ -36,7 +36,10 @@ def rule_indicators(rule: dict) -> list[tuple[str, dict]]:
         for op in (c["left"], c["right"]):
             if "ind" in op:
                 ind = INDICATORS[op["ind"]]
-                item = (ind.key, {p.name: op[p.name] for p in ind.params if p.name in op})
+                params = {p.name: op[p.name] for p in ind.params if p.name in op}
+                if op.get("shift"):
+                    params["shift"] = op["shift"]  # draw the line the rule really compares with
+                item = (ind.key, params)
                 if item not in out:
                     out.append(item)
     return out

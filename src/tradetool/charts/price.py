@@ -95,11 +95,13 @@ def price_chart(df: pd.DataFrame, kind="candles", indicators=(), ticker="", benc
     color_i = 1
     for key, params in overlays:
         ind = INDICATORS[key]
-        out = cut(ind.compute(df, **params))
+        shift = int(params.get("shift", 0))
+        out = cut(ind.compute(df, **params).shift(shift))
         color = SERIES[color_i % len(SERIES)]
         color_i += 1
         for j, col in enumerate(out.columns):
             name = ind.name_with(**params) + ("" if len(out.columns) == 1 else f" {col}")
+            name += f" [{shift} μέρα πριν]" if shift == 1 else f" [{shift} μέρες πριν]" if shift else ""
             dash = "solid" if j == 0 or col == "mid" else "dot"
             fig.add_trace(go.Scatter(x=out.index, y=out[col], name=name, legendgroup=key + str(params),
                                      line=dict(color=color, width=1.5, dash=dash)), row=1, col=1)

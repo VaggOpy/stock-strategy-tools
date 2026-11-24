@@ -134,6 +134,8 @@ def _quarterly_flow(d: pd.DataFrame) -> pd.DataFrame:
 
 
 def _instant(d: pd.DataFrame) -> pd.DataFrame:
+    # a balance or share count dated after its own filing is a typo in the filing (e.g. ADBE 2010)
+    d = d[d["end"] <= d["filed"]]
     d = d.sort_values("filed").drop_duplicates("end", keep="first")
     return pd.DataFrame({"end": d["end"], "value": d["val"], "filed": d["filed"], "derived": False})
 
