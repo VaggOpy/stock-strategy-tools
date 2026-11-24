@@ -21,3 +21,8 @@ def env(name: str, required: bool = False) -> str | None:
     if required and value is None:
         raise RuntimeError(f"{name} is not set. Copy .env.example to .env and fill it in.")
     return value
+
+# Fixed period for experiments, so results don't change when new data is downloaded.
+# Prices start 2016-01-04, the first year is warm-up for the 200-day indicators.
+TEST_START = "2017-01-03"
+TEST_END = "2026-10-30"
