@@ -63,6 +63,7 @@ copy .env.example .env
 
 ```
 python experiments/check_apis.py
+python experiments/classic_strategies.py
 pytest
 streamlit run app/Home.py
 ```
@@ -71,7 +72,7 @@ streamlit run app/Home.py
 
 - [x] Περιβάλλον και έλεγχος δωρεάν πηγών δεδομένων
 - [x] Λήψη δεδομένων, σελίδα διαγραμμάτων
-- [ ] Μηχανή backtest
+- [x] Μηχανή backtest, πρώτο πείραμα με κλασικές στρατηγικές ([docs/backtest.md](docs/backtest.md))
 - [ ] Επιλογή υπερπαραμέτρων (walk-forward, ευαισθησία)
 - [ ] Επιλογή μετοχών
 - [ ] Στρατηγική σε φυσική γλώσσα
