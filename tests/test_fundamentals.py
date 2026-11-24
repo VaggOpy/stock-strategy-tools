@@ -72,3 +72,24 @@ def test_ttm_needs_four_consecutive_quarters(facts):
     f = F.parse_facts(facts)
     assert F.ttm(f, "revenue", "2025-11-01") == 380
     assert pd.isna(F.ttm(f, "revenue", "2025-08-02"))  # only 3 quarters known
+
+
+def test_failed_download_keeps_old_summary_and_goes_on(tmp_path, monkeypatch):
+    import requests
+
+    from tradetool.data import fundamentals as fm
+
+    monkeypatch.setattr(fm, "FUNDAMENTALS_DIR", tmp_path)
+    monkeypatch.setattr(fm, "cik_map", lambda: {"AAA": 1, "BBB": 2})
+    pd.DataFrame([{"ticker": "AAA", "cik": 1, "status": "ok", "sic": 3674}]).to_csv(tmp_path / "_summary.csv",
+                                                                                   index=False)
+
+    def fake_get(url):
+        if "CIK0000000001" in url:
+            raise requests.ConnectionError("network down")
+        return {"facts": {}} if "companyfacts" in url else {"sic": "2834", "sicDescription": "Pharma"}
+
+    monkeypatch.setattr(fm, "_sec_get", fake_get)
+    s = fm.download(["AAA", "BBB"]).set_index("ticker")
+    assert s.loc["AAA", "status"] == "ok" and s.loc["AAA", "sic"] == 3674  # old row kept
+    assert s.loc["BBB", "status"] == "ok"  # the failure did not stop the loop

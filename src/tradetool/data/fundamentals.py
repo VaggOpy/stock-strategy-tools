@@ -175,6 +175,10 @@ def download(tickers: list[str]) -> pd.DataFrame:
         except requests.HTTPError as e:
             summary.append({**row, "status": f"http {e.response.status_code}"})
             continue
+        except (requests.RequestException, MemoryError, ValueError) as e:
+            # one bad response should not stop a 17 minute download; the old file stays in place
+            summary.append({**row, "status": f"error {type(e).__name__}"})
+            continue
         q = parse_facts(facts)
         q.to_parquet(_path(t))
         rev = q[q["concept"] == "revenue"]
@@ -185,7 +189,10 @@ def download(tickers: list[str]) -> pd.DataFrame:
     path = FUNDAMENTALS_DIR / "_summary.csv"
     if path.exists():
         old = pd.read_csv(path)
-        s = pd.concat([old[~old["ticker"].isin(s["ticker"])], s]).sort_values("ticker")
+        replaced = s.loc[s["status"] == "ok", "ticker"]  # a failed retry keeps the old row (and its SIC code)
+        s_new = s[s["status"] == "ok"]
+        s_failed_new = s[(s["status"] != "ok") & ~s["ticker"].isin(old["ticker"])]
+        s = pd.concat([old[~old["ticker"].isin(replaced)], s_new, s_failed_new]).sort_values("ticker")
     s.to_csv(path, index=False)
     return s
 
@@ -210,8 +217,8 @@ def load(ticker: str, refresh: bool = False) -> pd.DataFrame:
     if not p.exists() or (refresh and stale):
         try:
             download([ticker])
-        except requests.RequestException:
-            pass
+        except (requests.RequestException, RuntimeError):
+            pass  # offline or no SEC_USER_AGENT: use what is in the cache
     if not p.exists():
         raise KeyError(f"no fundamentals for {ticker}")
     return pd.read_parquet(p)
