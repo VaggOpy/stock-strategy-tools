@@ -94,17 +94,22 @@ def oos_returns(R: pd.DataFrame, P: pd.DataFrame, f: Fold, cols: list[int], prev
     """Daily returns of the chosen column(s) in the test window of fold f.
 
     If the choice is the same as in the previous fold, the position simply continues. Otherwise the
-    old position is sold at the last close before the window (an order that can be placed in advance)
-    and the new one is bought at the close of the first test day, when its state is known. The first
-    day then earns nothing and pays the costs of both trades. Taking the new rule's return for that
-    day instead would mean holding its position since a close where it had not been chosen yet."""
+    switch happens at the close of the first test day: the choice uses the closes up to the day before,
+    so it cannot be acted on earlier, and R only has close-to-close returns. That day still earns the
+    old choice's return. Only the change in position is paid for, so a top-k choice that keeps four of
+    its five rules pays for one."""
     r = window(R, f.test_start, f.test_end)[cols].mean(axis=1).astype(float)
     if prev is not None and sorted(prev) == sorted(cols):
         return r
-    before = P[P.index < f.test_start]
-    old = float(before[prev].iloc[-1].mean()) if prev is not None and len(before) else 0.0
-    new = float(window(P, f.test_start, f.test_end)[cols].iloc[0].mean())
-    r.iloc[0] = -(old + new) * cost_bps / 1e4
+    day = r.index[0]
+    pos = P.loc[day]
+    change = pd.Series(0.0, index=sorted(set(cols) | set(prev or [])))
+    for c in cols:
+        change[c] += pos[c] / len(cols)
+    for c in prev or []:
+        change[c] -= pos[c] / len(prev)
+    old = float(np.nan_to_num(R.loc[day, prev].mean())) if prev else 0.0
+    r.iloc[0] = old - change.abs().sum() * cost_bps / 1e4
     return r
 
 

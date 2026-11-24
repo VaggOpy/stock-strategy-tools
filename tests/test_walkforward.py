@@ -87,16 +87,23 @@ def test_default_index():
 
 
 def test_switch_has_no_free_overnight():
-    """When the choice changes, the first test day earns nothing and pays the switch costs. If the
-    choice stays the same, the position just continues."""
+    """When the choice changes, the first test day still earns the old choice's return and the switch
+    is paid at its close. If the choice stays the same, the position just continues."""
     idx = pd.bdate_range("2019-12-02", "2020-03-31")
-    R = pd.DataFrame({0: 0.01, 1: 0.02}, index=idx, dtype=float)
-    P = pd.DataFrame({0: 1.0, 1: 1.0}, index=idx)
+    R = pd.DataFrame({0: 0.01, 1: 0.02, 2: 0.03}, index=idx, dtype=float)
+    P = pd.DataFrame({0: 1.0, 1: 1.0, 2: 1.0}, index=idx)
     f = folds("2020-03-31", "2020-01-01", test_years=1)[0]
     switched = oos_returns(R, P, f, [1], [0], cost_bps=10)
-    assert switched.iloc[0] == pytest.approx(-0.002)
+    assert switched.iloc[0] == pytest.approx(0.01 - 0.002)  # sell all of 0, buy all of 1
     assert (switched.iloc[1:] == 0.02).all()
     same = oos_returns(R, P, f, [1], [1], cost_bps=10)
     assert (same == 0.02).all()
     first = oos_returns(R, P, f, [1], None, cost_bps=10)
     assert first.iloc[0] == pytest.approx(-0.001)
+    # top-k keeping one of two rules: only half the money moves
+    partial = oos_returns(R, P, f, [1, 2], [0, 1], cost_bps=10)
+    assert partial.iloc[0] == pytest.approx(0.015 - 0.001)
+    assert (partial.iloc[1:] == 0.025).all()
+    # the old rule was in cash at the switch: nothing to sell
+    P.loc[:, 0] = 0.0
+    assert oos_returns(R, P, f, [1], [0], cost_bps=10).iloc[0] == pytest.approx(0.01 - 0.001)

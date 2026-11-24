@@ -24,8 +24,8 @@ ENGINE = {
 }
 
 # ema_cross on a 3x3 grid, out-of-sample growth of 1 for each method
-WALK_FORWARD = {"fixed": 1.3926489904, "grid": 1.4958252143, "optuna": 1.5800601349,
-                "plateau": 1.4656792605, "topk": 1.2303336735}
+WALK_FORWARD = {"fixed": 1.3926489904, "grid": 1.4958252143, "optuna": 1.5449144274,
+                "plateau": 1.4656792605, "topk": 1.2056711369}
 PICKS = {"fixed": [[5]] * 6, "grid": [[3], [0], [0], [8], [8], [8]],
          "optuna": [[0], [0], [0], [8], [8], [7]], "plateau": [[0], [0], [0], [0], [8], [8]]}
 
