@@ -100,6 +100,6 @@ def unknown_numbers(explanation: str, *sources: str) -> list[str]:
     for x in NUMBER.findall(explanation):
         decimals = len(re.split(r"[.,]", x)[1]) if re.search(r"[.,]", x) else 0
         v = float(x.replace(",", "."))
-        if not any(round(k, decimals) == v for k in known):
+        if not any(abs(k - v) <= 0.5 * 10 ** -decimals + 1e-9 for k in known):  # 12.5 may be written 13
             out.append(x)
     return out

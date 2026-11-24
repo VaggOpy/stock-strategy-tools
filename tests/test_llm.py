@@ -111,6 +111,8 @@ def test_unknown_numbers():
     src = "CAGR 12.34%, Sharpe 0.87, 2017"
     assert unknown_numbers("απόδοση 12,3% και 12%, Sharpe 0,87 από το 2017", src) == []
     assert unknown_numbers("απόδοση 15% και Sharpe 0,9", src) == ["15"]
+    # halves round up as people write them, 12.5 -> 13 and 0.85 -> 0.9
+    assert unknown_numbers("13% και 0,9", "12.5% and 0.85") == []
 
 
 def test_explain_gets_only_our_numbers():
