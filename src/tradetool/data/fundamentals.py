@@ -264,13 +264,34 @@ def _consecutive(ends) -> bool:
     return len(gaps) > 0 and gaps.between(80, 100).all()
 
 
-def ttm(f: pd.DataFrame, concept: str, date, lag: int = 0) -> float:
-    """Sum of the last 4 quarters known at `date`. lag=4 gives the 4 quarters before those."""
-    q = quarters(f, concept, date)
+def ttm_of(q: pd.Series, lag: int = 0) -> float:
+    """Sum of the last 4 quarters of q (quarter values indexed by period end, sorted).
+    lag=4 gives the 4 quarters before those. NaN unless the 4 quarters are consecutive."""
     q = q.iloc[len(q) - 4 - lag: len(q) - lag] if len(q) >= 4 + lag else q.iloc[:0]
     return float(q.sum()) if len(q) == 4 and _consecutive(q.index) else float("nan")
 
 
-def ttm_growth(f: pd.DataFrame, concept: str, date) -> float:
-    now, before = ttm(f, concept, date), ttm(f, concept, date, lag=4)
+def growth_of(q: pd.Series) -> float:
+    now, before = ttm_of(q), ttm_of(q, lag=4)
     return now / before - 1 if before and before > 0 else float("nan")
+
+
+def ttm(f: pd.DataFrame, concept: str, date, lag: int = 0) -> float:
+    """Sum of the last 4 quarters known at `date`. lag=4 gives the 4 quarters before those."""
+    return ttm_of(quarters(f, concept, date), lag)
+
+
+def ttm_growth(f: pd.DataFrame, concept: str, date) -> float:
+    return growth_of(quarters(f, concept, date))
+
+
+def history(f: pd.DataFrame, concept: str, fn) -> pd.Series:
+    """fn(known quarters) after every filing, indexed by the first day it could be used (the day after
+    the filing). The same as calling fn(quarters(f, concept, date)) for every date, but computed once
+    per filing instead of once per date."""
+    g = f[f["concept"] == concept].sort_values("filed")
+    out = {}
+    for d in g["filed"].unique():
+        q = g[g["filed"] <= d].set_index("end")["value"].sort_index()
+        out[pd.Timestamp(d) + pd.Timedelta(days=1)] = fn(q)
+    return pd.Series(out, dtype=float)

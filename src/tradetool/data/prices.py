@@ -257,3 +257,14 @@ if __name__ == "__main__":
     if len(short):
         print("\nless than ~8 years of data:")
         print(short.to_string(index=False))
+
+
+def panel(symbols: list[str], field: str = "close", end=None) -> pd.DataFrame:
+    """One column per symbol from the cache (dates x symbols). Symbols without a file are left out."""
+    cols = {}
+    for s in symbols:
+        try:
+            cols[s] = load(s, end=end)[field]
+        except KeyError:
+            continue
+    return pd.DataFrame(cols).sort_index()
