@@ -95,6 +95,8 @@ if not t.ok:
 if t.unsupported:
     st.warning("Δεν γίνεται με τα κομμάτια του εργαλείου και παραλείφθηκε:\n" + "\n".join(f"- {s}" for s in t.unsupported))
 if t.rule is None:
+    if not t.unsupported:
+        st.warning("Το LLM δεν έφτιαξε κανόνα και δεν είπε γιατί. Δοκίμασε να γράψεις την περιγραφή πιο συγκεκριμένα.")
     st.stop()
 
 st.subheader(t.rule.get("name", "Ο κανόνας"))

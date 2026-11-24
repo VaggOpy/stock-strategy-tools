@@ -30,6 +30,12 @@ def factors(sp500_then: bool):
 
 
 u = universe()
+stocks = u.query("type == 'stock'")["ticker"]
+if (~stocks.isin(prices.cached())).sum() > 50:  # otherwise the page would download ~500 stocks one by one
+    st.title("Επιλογή μετοχών")
+    st.info("Η σελίδα χρειάζεται τις τιμές όλων των μετοχών. Κατέβασέ τες μία φορά με "
+            "`python -m tradetool.data.setup` (περίπου 5 λεπτά).")
+    st.stop()
 
 with st.sidebar:
     then = st.radio("Μετοχές", ["Μόνο όσες ήταν τότε στον S&P 500", "Οι σημερινές, σε όλη την περίοδο"],
@@ -77,7 +83,7 @@ fig = go.Figure(go.Bar(x=show["strength"], y=show["label"], orientation="h",
 fig.add_vline(x=0.5, line=dict(color=NEUTRAL, dash="dot"))
 fig.update_layout(height=520, margin=dict(l=10, r=10, t=10, b=10), xaxis_title="μέσο momentum των μελών (0-1)")
 st.plotly_chart(fig, width="stretch")
-st.caption("Οι 8 πιο δυνατοί και οι 8 πιο αδύναμοι κλάδοι (ομάδες SIC δύο ψηφίων με τουλάχιστον 3 μετοχές). "
+st.caption("Οι 8 πιο δυνατοί και οι 8 πιο αδύναμοι κλάδοι (ομάδες SIC δύο ψηφίων, ή ο ευρύτερος τομέας όταν η ομάδα είναι μικρή, με τουλάχιστον 3 μετοχές). "
            "Δίπλα στον κωδικό, ο πιο συχνός κλάδος των μελών.")
 
 st.subheader("Backtest του καλαθιού")
@@ -97,5 +103,5 @@ m.columns = ["CAGR", "Μεταβλητότητα", "Sharpe", "Max drawdown"]
 st.dataframe(m.style.format({"CAGR": "{:.1%}", "Μεταβλητότητα": "{:.1%}", "Sharpe": "{:.2f}",
                              "Max drawdown": "{:.1%}"}), width="stretch")
 st.caption(f"Αλλαγή καλαθιού κάθε μήνα στο άνοιγμα της πρώτης μέρας, με το σκορ του προηγούμενου κλεισίματος. "
-           f"Μέσος τζίρος ανά αλλαγή {res.turnover.mean():.0%}. Οι μετοχές είναι τα σημερινά μέλη των δεικτών, οπότε "
-           "και το καλάθι με όλες τις μετοχές είναι ευνοημένο (survivorship bias).")
+           f"Μέσος τζίρος ανά αλλαγή {res.turnover.mean():.0%}. Λείπουν οι μετοχές που βγήκαν από τους δείκτες "
+           "πριν από σήμερα, οπότε και το καλάθι με όλες τις μετοχές είναι ευνοημένο (survivorship bias).")
