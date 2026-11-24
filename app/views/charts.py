@@ -14,15 +14,17 @@ def universe():
     return load_universe()
 
 
-@st.cache_data
+# refresh=True: if the cached file is from an earlier day, download this ticker again (about 1 s).
+# ttl makes Streamlit check again after an hour instead of keeping the first result forever.
+@st.cache_data(ttl=3600)
 def load(ticker):
-    return prices.load(ticker)
+    return prices.load(ticker, refresh=True)
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_fund(ticker):
     try:
-        return fundamentals.load(ticker)
+        return fundamentals.load(ticker, refresh=True)
     except Exception:
         return None
 

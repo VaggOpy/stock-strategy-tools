@@ -129,14 +129,24 @@ def download(symbols: list[str], start=START) -> pd.DataFrame:
     return summary
 
 
-def load(symbol: str) -> pd.DataFrame:
-    """Prices for one ticker from the cache; downloads it first if it isn't there."""
+def _stale(p) -> bool:
+    return dt.date.fromtimestamp(p.stat().st_mtime) < dt.date.today()
+
+
+def load(symbol: str, refresh: bool = False, end=None) -> pd.DataFrame:
+    """Prices for one ticker from the cache; downloads it if it isn't there.
+    refresh=True also re-downloads it when the file is from an earlier day (used by the app).
+    end cuts the data at a fixed date, so experiments give the same result next month."""
     p = _path(symbol)
-    if not p.exists():
-        download([symbol])
+    if not p.exists() or (refresh and _stale(p)):
+        try:
+            download([symbol])
+        except (requests.RequestException, RuntimeError):
+            pass  # offline or no keys: use what is in the cache
     if not p.exists():
         raise KeyError(f"no price data for {symbol}")
-    return pd.read_parquet(p)
+    df = pd.read_parquet(p)
+    return df[df.index <= pd.Timestamp(end)] if end is not None else df
 
 
 def cached() -> list[str]:

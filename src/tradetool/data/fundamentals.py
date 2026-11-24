@@ -12,6 +12,7 @@ How a value becomes "known":
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import time
 
@@ -174,10 +175,18 @@ def download(tickers: list[str]) -> pd.DataFrame:
     return s
 
 
-def load(ticker: str) -> pd.DataFrame:
+def load(ticker: str, refresh: bool = False) -> pd.DataFrame:
+    """refresh=True re-downloads when the file is from an earlier day. Old filings never change,
+    so a refresh only adds new quarters; point-in-time access is unaffected."""
     p = _path(ticker)
+    stale = p.exists() and dt.date.fromtimestamp(p.stat().st_mtime) < dt.date.today()
+    if not p.exists() or (refresh and stale):
+        try:
+            download([ticker])
+        except requests.RequestException:
+            pass
     if not p.exists():
-        download([ticker])
+        raise KeyError(f"no fundamentals for {ticker}")
     return pd.read_parquet(p)
 
 
