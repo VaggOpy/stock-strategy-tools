@@ -114,6 +114,9 @@ def _quarterly_flow(d: pd.DataFrame) -> pd.DataFrame:
     shows up in a later filing (a restatement, a quarter table in a 10-K) must not replace the value that
     was known before it, otherwise the quarter is missing until that later filing."""
     d = d.dropna(subset=["start"]).copy()
+    # a period that ends after its own filing is a typo in the filing (AES: a 6-month EPS tagged as
+    # ending 2025-09-30, filed 2025-08-01); as the earliest version it would win otherwise
+    d = d[d["end"] <= d["filed"]]
     d["days"] = (d["end"] - d["start"]).dt.days
     lo, hi = QUARTER_DAYS
     q = {}
