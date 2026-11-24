@@ -9,26 +9,13 @@ are public and come as a ready snapshot.
 """
 from __future__ import annotations
 
-import io
 import sys
 import time
 import zipfile
 
-import requests
-
-from tradetool.config import FUNDAMENTALS_DIR, FUNDAMENTALS_SNAPSHOT
+from tradetool.config import FUNDAMENTALS_DIR
 from tradetool.data import fundamentals, prices
 from tradetool.data.universe import load_universe
-
-
-def get_snapshot(url=FUNDAMENTALS_SNAPSHOT):
-    r = requests.get(url, timeout=120)
-    r.raise_for_status()
-    FUNDAMENTALS_DIR.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-        names = [n for n in z.namelist() if "/" not in n and not n.startswith(".")]
-        z.extractall(FUNDAMENTALS_DIR, members=names)
-    return len(names)
 
 
 def make_snapshot(path):
@@ -58,7 +45,7 @@ def main(args):
         fundamentals.download(stocks)
     else:
         print("fundamentals snapshot...")
-        print(f"  {get_snapshot()} files")
+        print(f"  {fundamentals.get_snapshot()} files")
 
 
 if __name__ == "__main__":

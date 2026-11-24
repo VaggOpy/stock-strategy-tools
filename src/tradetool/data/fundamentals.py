@@ -13,13 +13,15 @@ How a value becomes "known":
 from __future__ import annotations
 
 import datetime as dt
+import io
 import json
 import time
+import zipfile
 
 import pandas as pd
 import requests
 
-from tradetool.config import FUNDAMENTALS_DIR, env
+from tradetool.config import FUNDAMENTALS_DIR, FUNDAMENTALS_SNAPSHOT, env
 
 FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
@@ -185,7 +187,7 @@ def download(tickers: list[str]) -> pd.DataFrame:
         summary.append({**row, "status": "ok", "sic": sub.get("sic"), "sic_desc": sub.get("sicDescription"),
                         "rows": len(q), "revenue_quarters": len(rev),
                         "first_quarter": rev["end"].min().date() if len(rev) else None})
-    s = pd.DataFrame(summary)
+    s = pd.DataFrame(summary, columns=["ticker", "cik", "status"] if not summary else None)
     path = FUNDAMENTALS_DIR / "_summary.csv"
     if path.exists():
         old = pd.read_csv(path)
@@ -209,9 +211,24 @@ def _merge(fact_sets: list[dict]) -> dict:
     return out
 
 
+def get_snapshot(url: str = FUNDAMENTALS_SNAPSHOT) -> int:
+    """Download the published snapshot of all fundamentals into the cache. Returns the number of files."""
+    r = requests.get(url, timeout=120)
+    r.raise_for_status()
+    FUNDAMENTALS_DIR.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+        names = [n for n in z.namelist() if "/" not in n and "\\" not in n and not n.startswith(".")]
+        z.extractall(FUNDAMENTALS_DIR, members=names)
+    return len(names)
+
+
+_snapshot_tried = [False]
+
+
 def load(ticker: str, refresh: bool = False) -> pd.DataFrame:
     """refresh=True re-downloads when the file is from an earlier day. Old filings never change,
-    so a refresh only adds new quarters; point-in-time access is unaffected."""
+    so a refresh only adds new quarters; point-in-time access is unaffected.
+    Without SEC_USER_AGENT the first missing file brings in the whole snapshot (once per run)."""
     p = _path(ticker)
     stale = p.exists() and dt.date.fromtimestamp(p.stat().st_mtime) < dt.date.today()
     if not p.exists() or (refresh and stale):
@@ -219,6 +236,12 @@ def load(ticker: str, refresh: bool = False) -> pd.DataFrame:
             download([ticker])
         except (requests.RequestException, RuntimeError):
             pass  # offline or no SEC_USER_AGENT: use what is in the cache
+    if not p.exists() and not _snapshot_tried[0]:
+        _snapshot_tried[0] = True
+        try:
+            get_snapshot()
+        except (requests.RequestException, zipfile.BadZipFile):
+            pass
     if not p.exists():
         raise KeyError(f"no fundamentals for {ticker}")
     return pd.read_parquet(p)

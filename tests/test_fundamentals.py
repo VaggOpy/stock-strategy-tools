@@ -93,3 +93,42 @@ def test_failed_download_keeps_old_summary_and_goes_on(tmp_path, monkeypatch):
     s = fm.download(["AAA", "BBB"]).set_index("ticker")
     assert s.loc["AAA", "status"] == "ok" and s.loc["AAA", "sic"] == 3674  # old row kept
     assert s.loc["BBB", "status"] == "ok"  # the failure did not stop the loop
+
+
+def test_missing_file_comes_from_the_snapshot(tmp_path, monkeypatch):
+    import io
+    import zipfile
+
+    from tradetool.data import fundamentals as fm
+
+    f = pd.DataFrame({"concept": ["revenue"], "end": [pd.Timestamp("2025-12-31")], "value": [1.0],
+                      "filed": [pd.Timestamp("2026-02-01")], "derived": [False]})
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("AAA.parquet", f.to_parquet())
+        z.writestr("../evil.parquet", b"x")  # paths outside the folder are ignored
+
+    class Resp:
+        content = buf.getvalue()
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr(fm, "FUNDAMENTALS_DIR", tmp_path / "fund")
+    monkeypatch.setattr(fm, "_snapshot_tried", [False])
+    monkeypatch.setattr(fm, "download", lambda t: (_ for _ in ()).throw(RuntimeError("no SEC_USER_AGENT")))
+    monkeypatch.setattr(fm.requests, "get", lambda url, timeout: Resp())
+    got = fm.load("AAA")
+    assert got["value"].iloc[0] == 1.0
+    assert not (tmp_path / "evil.parquet").exists()
+    with pytest.raises(KeyError):
+        fm.load("ZZZ")  # not in the snapshot, and the snapshot is not fetched twice
+
+
+def test_download_of_nothing(tmp_path, monkeypatch):
+    from tradetool.data import fundamentals as fm
+
+    monkeypatch.setattr(fm, "FUNDAMENTALS_DIR", tmp_path)
+    monkeypatch.setattr(fm, "cik_map", lambda: {})
+    pd.DataFrame([{"ticker": "AAA", "cik": 1, "status": "ok"}]).to_csv(tmp_path / "_summary.csv", index=False)
+    assert list(fm.download([])["ticker"]) == ["AAA"]
