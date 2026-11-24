@@ -83,6 +83,7 @@ def test_equity_matches_trades():
     for rule in RULES.values():
         res = run(df, rule, start=df.index[260], cost_bps=5)
         assert res.equity.iloc[-1] == pytest.approx((1 + res.trades["return"]).prod())
+        assert res.trades["pnl"].sum() == pytest.approx(res.equity.iloc[-1] - 1)
 
 
 def test_no_trade_on_start_day():
@@ -113,3 +114,22 @@ def test_metrics_known_values():
     m = metrics(eq)
     assert m["total_return"] == pytest.approx(0.1)
     assert m["max_drawdown"] == pytest.approx(-0.2)
+
+
+@pytest.mark.parametrize("op", [{"ind": "SMA", "length": 20.5}, {"ind": "EMA", "length": 0},
+                                {"ind": "RSI", "length": -5}, {"ind": "SMA", "length": 5000}])
+def test_bad_indicator_values_are_rejected(op):
+    rule = {"entry": [{"cond": "above", "left": {"price": "close"}, "right": op}]}
+    assert validate(rule)
+
+
+def test_bad_param_range_and_values():
+    rule = {"params": {"n": {"default": 20, "low": 0, "high": 50}},
+            "entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$n"}}]}
+    assert validate(rule)  # low 0 is not a valid SMA length
+    rule["params"]["n"]["low"] = 5
+    assert validate(rule) == []
+    with pytest.raises(ValueError):
+        resolve(rule, {"n": 12.5})
+    for bad in ({"stop_atr": -2}, {"max_days": 0}, {"max_days": 2.5}):
+        assert validate({**rule, **bad})

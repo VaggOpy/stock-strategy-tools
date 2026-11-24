@@ -99,17 +99,47 @@ def validate(rule: dict) -> list[str]:
             errors.append(f"{ind.key} needs \"out\": one of {ind.outputs}")
         if not ind.outputs and "out" in op:
             errors.append(f"{ind.key} has a single line, remove \"out\"")
+        # a searched parameter must stay inside what the indicator accepts over its whole range
+        for p in ind.params:
+            v = op.get(p.name)
+            if isinstance(v, str) and v[1:] in params:
+                spec = params[v[1:]]
+                if spec["low"] < p.low or spec["high"] > p.high:
+                    errors.append(f"param {v[1:]}: range [{spec['low']}, {spec['high']}] goes outside "
+                                  f"{ind.key} {p.name} limits [{p.low:g}, {p.high:g}]")
+                if _whole(p) and not (float(spec["low"]).is_integer() and float(spec.get("step", 1)).is_integer()):
+                    errors.append(f"param {v[1:]}: {ind.key} {p.name} takes whole numbers, use whole low and step")
+    if errors:
+        return errors
+    return _value_errors(_fill(rule, {k: p["default"] for k, p in params.items()}))
+
+
+def _whole(p) -> bool:
+    return float(p.step).is_integer() and float(p.default).is_integer()
+
+
+def _value_errors(rule: dict) -> list[str]:
+    """Checks on a rule with numbers in place of $params."""
+    errors = []
+    for op in _operands(rule):
+        if "ind" not in op:
+            continue
+        for p in INDICATORS[op["ind"]].params:
+            if p.name not in op:
+                continue
+            v = op[p.name]
+            if _whole(p) and not float(v).is_integer():
+                errors.append(f"{op['ind']} {p.name} must be a whole number, got {v}")
+            elif not p.low <= v <= p.high:
+                errors.append(f"{op['ind']} {p.name} must be between {p.low:g} and {p.high:g}, got {v}")
+    if "stop_atr" in rule and not rule["stop_atr"] > 0:
+        errors.append(f"stop_atr must be greater than 0, got {rule['stop_atr']}")
+    if "max_days" in rule and not (float(rule["max_days"]).is_integer() and rule["max_days"] >= 1):
+        errors.append(f"max_days must be a whole number of at least 1, got {rule['max_days']}")
     return errors
 
 
-def resolve(rule: dict, values: dict | None = None) -> dict:
-    """Copy of the rule with every $param replaced by a number (defaults unless given in values)."""
-    errors = validate(rule)
-    if errors:
-        raise ValueError("invalid rule:\n" + "\n".join(errors))
-    vals = {k: p["default"] for k, p in rule.get("params", {}).items()}
-    vals.update(values or {})
-
+def _fill(rule: dict, vals: dict) -> dict:
     def fill(v):
         if isinstance(v, str) and v.startswith("$"):
             v = vals[v[1:]]
@@ -123,6 +153,20 @@ def resolve(rule: dict, values: dict | None = None) -> dict:
     for k in ("stop_atr", "max_days"):
         if k in out:
             out[k] = fill(out[k])
+    return out
+
+
+def resolve(rule: dict, values: dict | None = None) -> dict:
+    """Copy of the rule with every $param replaced by a number (defaults unless given in values)."""
+    errors = validate(rule)
+    if errors:
+        raise ValueError("invalid rule:\n" + "\n".join(errors))
+    vals = {k: p["default"] for k, p in rule.get("params", {}).items()}
+    vals.update(values or {})
+    out = _fill(rule, vals)
+    errors = _value_errors(out)
+    if errors:
+        raise ValueError("invalid values:\n" + "\n".join(errors))
     return out
 
 
