@@ -52,6 +52,9 @@ with st.sidebar:
     st.divider()
     df = load(ticker)
     first = max(df.index[0] + pd.Timedelta(days=300), pd.Timestamp(TEST_START))
+    short = first >= df.index[-1]
+    if short:  # listed less than a year ago, no room for a warm-up
+        first = df.index[0]
     period = st.date_input("Περίοδος", (first.date(), df.index[-1].date()),
                            min_value=df.index[0].date(), max_value=df.index[-1].date())
     cost = st.number_input("Κόστος ανά συναλλαγή (bps, κάθε πλευρά)", 0.0, 50.0, 5.0, 1.0)
@@ -63,7 +66,13 @@ st.caption(rule.get("description", ""))
 if len(period) != 2:
     st.stop()
 start, end = pd.Timestamp(period[0]), pd.Timestamp(period[1])
+if short:
+    st.info(f"Το {ticker} έχει δεδομένα μόνο από {df.index[0]:%d/%m/%Y}. Οι μακριοί δείκτες δεν προλαβαίνουν "
+            "να υπολογιστούν, οπότε η στρατηγική μπορεί να μην κάνει καμία συναλλαγή.")
 res = run(df, rule, values, start=start, end=end, cost_bps=cost)
+if len(res.equity) < 2:
+    st.warning("Η περίοδος είναι πολύ μικρή για backtest.")
+    st.stop()
 spy = load("SPY")
 table = compare(res, df[df.index <= end], spy["close"])
 
@@ -94,7 +103,8 @@ fig = price_chart(df[df.index <= end], kind, rule_indicators(res.rule), ticker, 
 st.plotly_chart(add_trades(fig, res.trades), width="stretch")
 
 with st.expander(f"Όλες οι συναλλαγές ({len(res.trades)})"):
-    st.dataframe(res.trades.style.format({"entry_price": "{:.2f}", "exit_price": "{:.2f}", "return": "{:.1%}"}),
+    st.dataframe(res.trades.style.format({"entry_price": "{:.2f}", "exit_price": "{:.2f}", "return": "{:.1%}",
+                                     "pnl": "{:+.3f}"}),
                  width="stretch")
 with st.expander("Ο κανόνας σε JSON"):
     st.code(json.dumps(res.rule, indent=2), language="json")

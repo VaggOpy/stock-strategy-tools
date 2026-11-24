@@ -30,14 +30,15 @@ def matrix(ticker, name):
     axes = grid(rule, SEARCH[name])
     valid = (lambda v: v["fast"] < v["slow"]) if name == "ema_cross" else None
     df = prices.load(ticker, end=TEST_END)
-    return returns_matrix(df, rule, axes, TEST_START, valid=valid), axes, default_index(rule, axes)
+    R, P = returns_matrix(df, rule, axes, TEST_START, valid=valid)
+    return R, P, axes, default_index(rule, axes)
 
 
 @st.cache_data
 def run_wf(ticker, name, first_test):
-    R, axes, default = matrix(ticker, name)
+    R, P, axes, default = matrix(ticker, name)
     shape = [len(v) for v in axes.values()]
-    rows, oos = walk_forward(R, shape, default, folds(R.index[-1], first_test))
+    rows, oos = walk_forward(R, P, shape, default, folds(R.index[-1], first_test))
     return pd.DataFrame(rows), oos
 
 
@@ -55,7 +56,7 @@ with st.sidebar:
 st.title(f"Επιλογή παραμέτρων: {ticker}, {rules[name]['name']}")
 
 try:
-    R, axes, default = matrix(ticker, name)
+    R, P, axes, default = matrix(ticker, name)
 except KeyError:
     st.error(f"Δεν υπάρχουν δεδομένα για {ticker}.")
     st.stop()
@@ -65,14 +66,19 @@ if R.index[0] > pd.Timestamp(TEST_START) + pd.Timedelta(days=10):
 shape = [len(v) for v in axes.values()]
 rows, oos = run_wf(ticker, name, "2020-01-01")
 fl = folds(R.index[-1], "2020-01-01")
-years = {f.test_start.year: f for f in fl}
+# only the years walk_forward could use (enough data in the train window)
+used = set(rows["test_start"]) if len(rows) else set()
+years = {f.test_start.year: f for f in fl if f.test_start in used}
+if not years:
+    st.info("Η μετοχή δεν έχει αρκετό ιστορικό για ούτε ένα διάστημα εκπαίδευσης.")
+    st.stop()
 
 st.subheader("Χάρτης ευαισθησίας")
-year = st.select_slider("Χρονιά ελέγχου", list(years), value=list(years)[-2])
+year = st.select_slider("Χρονιά ελέγχου", list(years), value=list(years)[-2 if len(years) > 1 else -1])
 f = years[year]
 s_in = sharpe(window(R, f.train_start, f.train_end))
 s_out = sharpe(window(R, f.test_start, f.test_end))
-picks = choose(s_in, shape, default, seed=list(years).index(year))
+picks = choose(s_in, shape, default, seed=fl.index(f))  # same seed as walk_forward uses for this fold
 st.caption(f"Εκπαίδευση {f.train_start:%d/%m/%Y} έως {f.train_end - pd.Timedelta(days=1):%d/%m/%Y}, "
            f"έλεγχος {f.test_start:%d/%m/%Y} έως {f.test_end - pd.Timedelta(days=1):%d/%m/%Y}. "
            "Κάθε κελί είναι το Sharpe ενός συνδυασμού. Τα σημάδια δείχνουν τι διάλεξε κάθε μέθοδος "
