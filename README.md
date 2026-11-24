@@ -53,15 +53,20 @@ src/tradetool/
     signals.py           κανόνας -> σήματα εισόδου/εξόδου
     library/*.json       τέσσερις κλασικές στρατηγικές
   backtest/
-    engine.py            η προσομοίωση (εκτέλεση στο επόμενο άνοιγμα, stops, κόστη)
+    engine.py            η προσομοίωση μίας μετοχής (εκτέλεση στο επόμενο άνοιγμα, stops, κόστη)
+    portfolio.py         η προσομοίωση καλαθιού με αλλαγή βαρών κάθε μήνα
     metrics.py           CAGR, Sharpe, drawdown κ.λπ. και σύγκριση με buy & hold και SPY
   optimize/
     search.py            πλέγμα παραμέτρων, αποδόσεις όλων των συνδυασμών
     walkforward.py       διαστήματα εκπαίδευσης/ελέγχου και οι μέθοδοι επιλογής παραμέτρων
+  selection/
+    factors.py           momentum και θεμελιώδη ανά μήνα, μόνο με ό,τι ήταν γνωστό τότε
+    groups.py            ομάδες μετοχών (κλάδος SIC ή clustering) και δύναμη ομάδας
+    model.py             σκορ, καλάθι των N καλύτερων, περιορισμός στις μετοχές του S&P 500 κάθε ημερομηνίας
   charts/                γραφήματα plotly (τιμές, backtest, χάρτες ευαισθησίας)
 app/
   Home.py                streamlit run app/Home.py
-  views/                 μία σελίδα ανά αρχείο: αρχική, διαγράμματα, backtest, υπερπαράμετροι
+  views/                 μία σελίδα ανά αρχείο: αρχική, διαγράμματα, backtest, υπερπαράμετροι, επιλογή μετοχών
 experiments/             ένα script ανά πείραμα, τα αποτελέσματα στο results/<όνομα script>/
 docs/                    μέθοδοι και αποτελέσματα σε κείμενο
 tests/                   pytest, μαζί με τα tests για look-ahead
@@ -69,7 +74,7 @@ tests/                   pytest, μαζί με τα tests για look-ahead
 
 Τα docs με τη σειρά που αξίζει να διαβαστούν:
 [πηγές δεδομένων](docs/πηγές_δεδομένων.md), [θεμελιώδη](docs/θεμελιώδη.md), [backtest](docs/backtest.md),
-[επιλογή υπερπαραμέτρων](docs/υπερπαράμετροι.md).
+[επιλογή υπερπαραμέτρων](docs/υπερπαράμετροι.md), [επιλογή μετοχών](docs/επιλογή_μετοχών.md).
 
 ## Εγκατάσταση
 
@@ -108,6 +113,7 @@ streamlit run app/Home.py
 pytest
 python experiments/classic_strategies.py
 python experiments/walkforward_methods.py
+python experiments/stock_selection.py
 python experiments/check_adjustments.py
 ```
 
@@ -120,6 +126,6 @@ python experiments/check_adjustments.py
 - [x] Λήψη δεδομένων, σελίδα διαγραμμάτων
 - [x] Μηχανή backtest, πρώτο πείραμα με κλασικές στρατηγικές ([docs/backtest.md](docs/backtest.md))
 - [x] Επιλογή υπερπαραμέτρων: walk-forward, σύγκριση μεθόδων, χάρτες ευαισθησίας ([docs/υπερπαράμετροι.md](docs/υπερπαράμετροι.md))
-- [ ] Επιλογή μετοχών
+- [x] Επιλογή μετοχών με momentum, θεμελιώδη και δύναμη κλάδου ([docs/επιλογή_μετοχών.md](docs/επιλογή_μετοχών.md))
 - [ ] Στρατηγική σε φυσική γλώσσα
 - [ ] Πειράματα και αναφορά
