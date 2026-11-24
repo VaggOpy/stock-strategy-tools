@@ -64,6 +64,7 @@ copy .env.example .env
 ```
 python experiments/check_apis.py
 python experiments/classic_strategies.py
+python experiments/walkforward_methods.py
 pytest
 streamlit run app/Home.py
 ```
@@ -73,7 +74,7 @@ streamlit run app/Home.py
 - [x] Περιβάλλον και έλεγχος δωρεάν πηγών δεδομένων
 - [x] Λήψη δεδομένων, σελίδα διαγραμμάτων
 - [x] Μηχανή backtest, πρώτο πείραμα με κλασικές στρατηγικές ([docs/backtest.md](docs/backtest.md))
-- [ ] Επιλογή υπερπαραμέτρων (walk-forward, ευαισθησία)
+- [x] Επιλογή υπερπαραμέτρων: walk-forward, σύγκριση μεθόδων, χάρτες ευαισθησίας ([docs/υπερπαράμετροι.md](docs/υπερπαράμετροι.md))
 - [ ] Επιλογή μετοχών
 - [ ] Στρατηγική σε φυσική γλώσσα
 - [ ] Πειράματα και αναφορά
