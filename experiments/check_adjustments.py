@@ -15,7 +15,7 @@ from tradetool.config import ROOT
 from tradetool.data import prices
 from tradetool.data.universe import load_universe
 
-OUT = ROOT / "experiments" / "results"
+OUT = ROOT / "experiments" / "results" / "check_adjustments"
 LIMIT = 0.02  # daily returns differing by more than 2 points
 
 
@@ -45,9 +45,9 @@ def main():
             days += d
     s = pd.DataFrame(summary)
     d = pd.DataFrame(days)
-    OUT.mkdir(exist_ok=True)
-    s.to_csv(OUT / "adjustment_check_summary.csv", index=False)
-    d.to_csv(OUT / "adjustment_check_days.csv", index=False)
+    OUT.mkdir(parents=True, exist_ok=True)
+    s.to_csv(OUT / "summary.csv", index=False)
+    d.to_csv(OUT / "days.csv", index=False)
     print(f"{len(s)} symbols compared in {time.time() - t0:.0f}s")
     print(f"{(s['bad_days'] > 0).sum()} symbols with at least one day differing by more than {LIMIT:.0%}")
     print(f"{len(d)} such days in total, out of {s['days'].sum()}")

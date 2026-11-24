@@ -33,13 +33,43 @@
 
 ## Δομή
 
+Όλη η λογική είναι στο `src/tradetool/` και δεν εξαρτάται από το Streamlit, ώστε να ελέγχεται με tests.
+Η εφαρμογή και τα πειράματα απλώς τη χρησιμοποιούν.
+
 ```
-src/tradetool/    η λογική (data, indicators, charts, rules, backtest, optimize, selection, llm)
-app/              Streamlit
-experiments/      scripts για τα αποτελέσματα, οι έξοδοι στο experiments/results/
-tests/
-docs/
+src/tradetool/
+  config.py              διαδρομές, σταθερή περίοδος πειραμάτων (TEST_START, TEST_END), ανάγνωση .env
+  data/
+    universe.py, .csv    οι μετοχές (S&P 500 + Nasdaq-100) και τα ETFs, με κλάδο SIC
+    prices.py            ημερήσιες τιμές από Alpaca, έλεγχος με Yahoo, καθαρισμός
+    fundamentals.py      θεμελιώδη από τη SEC με την ημερομηνία κατάθεσης (χωρίς look-ahead)
+    checks.py            έλεγχοι ακεραιότητας των αποθηκευμένων δεδομένων
+    setup.py             python -m tradetool.data.setup: κατεβάζει όλα τα δεδομένα
+  indicators/
+    core.py              SMA, EMA, Bollinger, Donchian, RSI, ATR, MACD
+    registry.py          κάθε δείκτης με τις παραμέτρους και τα επιτρεπτά εύρη τους
+  rules/
+    schema.py            η μορφή JSON των στρατηγικών και ο έλεγχός της
+    signals.py           κανόνας -> σήματα εισόδου/εξόδου
+    library/*.json       τέσσερις κλασικές στρατηγικές
+  backtest/
+    engine.py            η προσομοίωση (εκτέλεση στο επόμενο άνοιγμα, stops, κόστη)
+    metrics.py           CAGR, Sharpe, drawdown κ.λπ. και σύγκριση με buy & hold και SPY
+  optimize/
+    search.py            πλέγμα παραμέτρων, αποδόσεις όλων των συνδυασμών
+    walkforward.py       διαστήματα εκπαίδευσης/ελέγχου και οι μέθοδοι επιλογής παραμέτρων
+  charts/                γραφήματα plotly (τιμές, backtest, χάρτες ευαισθησίας)
+app/
+  Home.py                streamlit run app/Home.py
+  views/                 μία σελίδα ανά αρχείο: αρχική, διαγράμματα, backtest, υπερπαράμετροι
+experiments/             ένα script ανά πείραμα, τα αποτελέσματα στο results/<όνομα script>/
+docs/                    μέθοδοι και αποτελέσματα σε κείμενο
+tests/                   pytest, μαζί με τα tests για look-ahead
 ```
+
+Τα docs με τη σειρά που αξίζει να διαβαστούν:
+[πηγές δεδομένων](docs/πηγές_δεδομένων.md), [θεμελιώδη](docs/θεμελιώδη.md), [backtest](docs/backtest.md),
+[επιλογή υπερπαραμέτρων](docs/υπερπαράμετροι.md).
 
 ## Εγκατάσταση
 

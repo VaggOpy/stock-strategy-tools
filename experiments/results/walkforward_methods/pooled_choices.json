@@ -31,7 +31,7 @@
  ],
  "sma_trend":[
   {
-   "length":250.0
+   "length":240.0
   },
   {
    "length":60.0
@@ -43,10 +43,10 @@
    "length":180.0
   },
   {
-   "length":210.0
+   "length":230.0
   },
   {
-   "length":200.0
+   "length":180.0
   },
   {
    "length":80.0
@@ -84,31 +84,31 @@
  ],
  "donchian_breakout":[
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   },
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   },
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   },
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   },
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   },
   {
-   "entry_len":10.0,
-   "exit_len":60.0
+   "entry_len":25.0,
+   "exit_len":10.0
   },
   {
-   "entry_len":10.0,
+   "entry_len":15.0,
    "exit_len":60.0
   }
  ]

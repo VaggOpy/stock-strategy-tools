@@ -18,7 +18,7 @@ from tradetool.data import prices
 from tradetool.data.universe import load_universe
 from tradetool.rules.schema import library
 
-OUT = ROOT / "experiments" / "results"
+OUT = ROOT / "experiments" / "results" / "classic_strategies"
 COST_BPS = 5
 
 
@@ -50,8 +50,8 @@ def main():
     print(f"{len(rows)} backtests in {time.time() - t0:.0f}s")
 
     per_stock = pd.DataFrame(rows)
-    OUT.mkdir(exist_ok=True)
-    per_stock.to_csv(OUT / "classic_per_stock.csv", index=False)
+    OUT.mkdir(parents=True, exist_ok=True)
+    per_stock.to_csv(OUT / "per_stock.csv", index=False)
 
     s = per_stock.groupby("rule").agg(
         median_cagr=("cagr", "median"), median_bh_cagr=("bh_cagr", "median"),
@@ -73,9 +73,9 @@ def main():
     print("\nEqual-weight baskets vs SPY:")
     print(b[["cagr", "volatility", "sharpe", "max_drawdown", "calmar", "beta_spy"]].round(3).to_string())
 
-    s.to_csv(OUT / "classic_summary.csv")
-    b.to_csv(OUT / "classic_baskets.csv")
-    pd.DataFrame(baskets).to_csv(OUT / "classic_basket_curves.csv")
+    s.to_csv(OUT / "summary.csv")
+    b.to_csv(OUT / "baskets.csv")
+    pd.DataFrame(baskets).to_csv(OUT / "basket_curves.csv")
 
 
 if __name__ == "__main__":

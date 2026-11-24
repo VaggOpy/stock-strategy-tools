@@ -3,7 +3,7 @@
     python experiments/check_apis.py            # all
     python experiments/check_apis.py yahoo sec  # some
 
-Sources without a key in .env are skipped. Results go to experiments/results/api_checks.jsonl.
+Sources without a key in .env are skipped. Results go to experiments/results/check_apis/api_checks.jsonl.
 """
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     for check in CHECKS:
         if not wanted or any(w in check.source for w in wanted):
             check()
-    log = ROOT / "experiments" / "results" / "api_checks.jsonl"
+    log = ROOT / "experiments" / "results" / "check_apis" / "api_checks.jsonl"
     log.parent.mkdir(parents=True, exist_ok=True)
     with log.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"date": str(TODAY), **RESULTS}, ensure_ascii=False, default=str) + "\n")

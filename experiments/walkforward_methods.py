@@ -21,7 +21,7 @@ from tradetool.optimize.search import default_index, grid, returns_matrix, sharp
 from tradetool.optimize.walkforward import folds, oos_returns, walk_forward, window
 from tradetool.rules.schema import library
 
-OUT = ROOT / "experiments" / "results"
+OUT = ROOT / "experiments" / "results" / "walkforward_methods"
 FIRST_TEST = "2020-01-01"
 COST_BPS = 5
 
@@ -115,8 +115,8 @@ def main():
         print("  pooled choice per fold:", chosen)
 
     rows = pd.DataFrame(all_rows)
-    OUT.mkdir(exist_ok=True)
-    rows.drop(columns="cols").assign(cols=rows["cols"].astype(str)).to_csv(OUT / "wf_rows.csv", index=False)
+    OUT.mkdir(parents=True, exist_ok=True)
+    rows.drop(columns="cols").assign(cols=rows["cols"].astype(str)).to_csv(OUT / "rows.csv", index=False)
 
     # per stock and fold
     fixed = rows[rows["method"] == "fixed"].set_index(["rule", "ticker", "fold"])["oos_sharpe"]
@@ -147,12 +147,12 @@ def main():
     print("\nBasket Sharpe per test year:")
     print(yearly.astype(float).round(2).to_string())
 
-    pd.Series(pooled_choices).to_json(OUT / "wf_pooled_choices.json", indent=1)
-    per.to_csv(OUT / "wf_per_stock_summary.csv")
-    rc.to_csv(OUT / "wf_rank_corr.csv")
-    b.to_csv(OUT / "wf_baskets.csv")
-    yearly.to_csv(OUT / "wf_baskets_yearly.csv")
-    pd.DataFrame({f"{k[0]} / {k[1]}": (1 + v).cumprod() for k, v in curves.items()}).to_csv(OUT / "wf_basket_curves.csv")
+    pd.Series(pooled_choices).to_json(OUT / "pooled_choices.json", indent=1)
+    per.to_csv(OUT / "per_stock_summary.csv")
+    rc.to_csv(OUT / "rank_corr.csv")
+    b.to_csv(OUT / "baskets.csv")
+    yearly.to_csv(OUT / "baskets_yearly.csv")
+    pd.DataFrame({f"{k[0]} / {k[1]}": (1 + v).cumprod() for k, v in curves.items()}).to_csv(OUT / "basket_curves.csv")
 
 
 if __name__ == "__main__":
