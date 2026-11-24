@@ -28,13 +28,13 @@ class Result:
 
 
 def run(df: pd.DataFrame, rule: dict, values: dict | None = None, start=None, end=None,
-        cost_bps: float = 5.0) -> Result:
+        cost_bps: float = 5.0, cache: dict | None = None) -> Result:
     """df: daily OHLC with the full history, so indicators are warmed up before `start`.
-    The first order can be filled on the day after `start`."""
+    The first order can be filled on the day after `start`. cache: see signals()."""
     rule = resolve(rule, values)
     if end is not None:
         df = df[df.index <= pd.Timestamp(end)]
-    sig = signals(df, rule)
+    sig = signals(df, rule, cache)
 
     o, h, l, c = (df[k].to_numpy(float) for k in ("open", "high", "low", "close"))
     entry, exit_, atr = sig["entry"].to_numpy(), sig["exit"].to_numpy(), sig["atr"].to_numpy()

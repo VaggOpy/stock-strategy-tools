@@ -36,13 +36,16 @@ def condition(df: pd.DataFrame, c: dict, cache: dict) -> pd.Series:
     return (left < right) & (left.shift(1) >= right.shift(1))
 
 
-def signals(df: pd.DataFrame, rule: dict) -> pd.DataFrame:
-    """rule must be resolved (numbers, no $params). Columns: entry, exit, atr."""
-    cache: dict = {}
+def signals(df: pd.DataFrame, rule: dict, cache: dict | None = None) -> pd.DataFrame:
+    """rule must be resolved (numbers, no $params). Columns: entry, exit, atr.
+    cache can be shared between calls on the same df (parameter search), indicators are then computed once."""
+    cache = {} if cache is None else cache
     entry = pd.Series(True, index=df.index)
     for c in rule["entry"]:
         entry &= condition(df, c, cache)
     exit_ = pd.Series(False, index=df.index)
     for c in rule.get("exit", []):
         exit_ |= condition(df, c, cache)
-    return pd.DataFrame({"entry": entry, "exit": exit_, "atr": core.atr(df, 14)})
+    if "atr" not in cache:
+        cache["atr"] = core.atr(df, 14)
+    return pd.DataFrame({"entry": entry, "exit": exit_, "atr": cache["atr"]})

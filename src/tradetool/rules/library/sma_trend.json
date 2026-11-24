@@ -4,6 +4,10 @@
   "params": {
     "length": {"default": 200, "low": 50, "high": 300, "step": 10}
   },
-  "entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}],
-  "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}]
+  "entry": [
+    {"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}
+  ],
+  "exit": [
+    {"cond": "below", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}
+  ]
 }
