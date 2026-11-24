@@ -109,9 +109,20 @@ def validate(rule: dict) -> list[str]:
                                   f"{ind.key} {p.name} limits [{p.low:g}, {p.high:g}]")
                 if _whole(p) and not (float(spec["low"]).is_integer() and float(spec.get("step", 1)).is_integer()):
                     errors.append(f"param {v[1:]}: {ind.key} {p.name} takes whole numbers, use whole low and step")
+    for c in rule["entry"] + rule.get("exit", []):
+        for side, other in (("left", "right"), ("right", "left")):
+            if "value" in c[other] and c[other]["value"] != 0 and _price_scaled(c[side]):
+                errors.append(f"{c['cond']}: a price or a price-based indicator cannot be compared with a fixed "
+                              "number. Adjusted prices are rescaled after later splits and dividends, so a fixed "
+                              "level would use information from the future. Compare it with another price line, "
+                              "or use RSI for fixed levels.")
     if errors:
         return errors
     return _value_errors(_fill(rule, {k: p["default"] for k, p in params.items()}))
+
+
+def _price_scaled(op: dict) -> bool:
+    return "price" in op or ("ind" in op and not INDICATORS[op["ind"]].scale_free)
 
 
 def _whole(p) -> bool:

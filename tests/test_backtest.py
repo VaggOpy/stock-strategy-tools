@@ -133,3 +133,15 @@ def test_bad_param_range_and_values():
         resolve(rule, {"n": 12.5})
     for bad in ({"stop_atr": -2}, {"max_days": 0}, {"max_days": 2.5}):
         assert validate({**rule, **bad})
+
+
+def test_fixed_price_levels_are_rejected():
+    """'close above 100' on adjusted prices is look-ahead: the old prices already contain later splits."""
+    level = {"entry": [{"cond": "above", "left": {"price": "close"}, "right": {"value": 100}}]}
+    assert validate(level)
+    sma = {"entry": [{"cond": "below", "left": {"value": 50}, "right": {"ind": "SMA", "length": 20}}]}
+    assert validate(sma)
+    # scale-free comparisons stay allowed
+    rsi = {"entry": [{"cond": "below", "left": {"ind": "RSI", "length": 2}, "right": {"value": 10}}]}
+    macd = {"entry": [{"cond": "above", "left": {"ind": "MACD", "out": "hist"}, "right": {"value": 0}}]}
+    assert validate(rsi) == [] and validate(macd) == []
