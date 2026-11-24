@@ -7,5 +7,6 @@ pages = [
     st.Page("views/charts.py", title="Διαγράμματα"),
     st.Page("views/backtest.py", title="Backtest"),
     st.Page("views/optimize.py", title="Υπερπαράμετροι"),
+    st.Page("views/selection.py", title="Επιλογή μετοχών"),
 ]
 st.navigation(pages).run()
