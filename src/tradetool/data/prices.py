@@ -81,6 +81,23 @@ def _path(symbol):
     return PRICES_DIR / f"{symbol}.parquet"
 
 
+MAX_GAP_DAYS = 30
+
+
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    """1. Drop days with zero volume. Alpaca fills days when a stock was suspended or traded only
+    OTC with the last price and volume 0 (NBIS 2022-24, SMCI 2018-20, EXE 2020-21). Nobody could
+    trade at those prices.
+    2. If the series has a gap longer than MAX_GAP_DAYS, keep only the part after the last gap.
+    A return across such a gap is meaningless, and sometimes the symbol even belongs to another
+    company before it (DOW was Dow Chemical until 2017, Dow Inc. from 2019)."""
+    df = df[df["volume"] > 0]
+    gaps = df.index.to_series().diff().dt.days > MAX_GAP_DAYS
+    if gaps.any():
+        df = df[df.index >= gaps[gaps].index[-1]]
+    return df
+
+
 def download(symbols: list[str], start=START) -> pd.DataFrame:
     """Download (or re-download) symbols and write the cache. Returns a summary per symbol."""
     PRICES_DIR.mkdir(parents=True, exist_ok=True)
@@ -95,9 +112,11 @@ def download(symbols: list[str], start=START) -> pd.DataFrame:
         else:
             df = fetch_yahoo(sym, start)
             source = "yahoo" if not df.empty else "missing"
+        n = len(df)
+        df = clean(df) if n else df
         if not df.empty:
             df.to_parquet(_path(sym))
-        summary.append({"ticker": sym, "source": source, "rows": len(df),
+        summary.append({"ticker": sym, "source": source, "rows": len(df), "dropped": n - len(df),
                         "first": df.index.min().date() if len(df) else None,
                         "last": df.index.max().date() if len(df) else None,
                         "downloaded": dt.date.today()})
