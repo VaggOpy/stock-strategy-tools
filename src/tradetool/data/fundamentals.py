@@ -44,6 +44,15 @@ CONCEPTS = {
 INSTANT = {"equity", "shares_out"}
 FORMS = ("10-Q", "10-K", "20-F", "40-F")
 
+# Companies that moved under a new holding company get a new CIK, and the SEC ticker map points
+# to the new one, which has almost no history. The older filings are under these CIKs.
+PREDECESSORS = {
+    "XOM": [34088],     # Exxon Mobil Corp -> ExxonMobil Holdings Corp (2026)
+    "APA": [6769],      # Apache Corp -> APA Corp (2021)
+    "BLK": [1364742],   # BlackRock Inc. (now BlackRock Finance) -> new BlackRock Inc. (2024)
+    "BG": [1144519],    # Bunge Ltd -> Bunge Global SA (2023)
+}
+
 _last_call = [0.0]
 
 
@@ -159,7 +168,7 @@ def download(tickers: list[str]) -> pd.DataFrame:
             summary.append({**row, "status": "no CIK"})
             continue
         try:
-            facts = _sec_get(FACTS_URL.format(cik=cik))["facts"]
+            facts = _merge([_sec_get(FACTS_URL.format(cik=c))["facts"] for c in PREDECESSORS.get(t, []) + [cik]])
             sub = _sec_get(SUBMISSIONS_URL.format(cik=cik))
         except requests.HTTPError as e:
             summary.append({**row, "status": f"http {e.response.status_code}"})
@@ -171,8 +180,24 @@ def download(tickers: list[str]) -> pd.DataFrame:
                         "rows": len(q), "revenue_quarters": len(rev),
                         "first_quarter": rev["end"].min().date() if len(rev) else None})
     s = pd.DataFrame(summary)
-    s.to_csv(FUNDAMENTALS_DIR / "_summary.csv", index=False)
+    path = FUNDAMENTALS_DIR / "_summary.csv"
+    if path.exists():
+        old = pd.read_csv(path)
+        s = pd.concat([old[~old["ticker"].isin(s["ticker"])], s]).sort_values("ticker")
+    s.to_csv(path, index=False)
     return s
+
+
+def _merge(fact_sets: list[dict]) -> dict:
+    """Put the facts of several CIKs together (predecessor first). parse_facts keeps the first filing
+    of each period, so overlapping periods are not counted twice."""
+    out: dict = {}
+    for facts in fact_sets:
+        for ns, tags in facts.items():
+            for tag, d in tags.items():
+                for unit, rows in d.get("units", {}).items():
+                    out.setdefault(ns, {}).setdefault(tag, {"units": {}})["units"].setdefault(unit, []).extend(rows)
+    return out
 
 
 def load(ticker: str, refresh: bool = False) -> pd.DataFrame:
