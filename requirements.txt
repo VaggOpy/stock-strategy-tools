@@ -3,6 +3,7 @@ numpy>=2.0
 pandas>=2.2
 pyarrow>=15
 requests>=2.31
+lxml>=5.0
 python-dotenv>=1.0
 
 # Price data (backup source; Alpaca is called directly with requests)
