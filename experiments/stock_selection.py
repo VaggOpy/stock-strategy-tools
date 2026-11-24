@@ -151,9 +151,9 @@ def run(label, close, open_, spy_close, u, dates, members=None):
     (out / "walkforward_choices.json").write_text(json.dumps(chosen, indent=1))
     yearly.to_csv(out / "yearly.csv")
     pd.DataFrame(curves).to_csv(out / "curves.csv")
-    # which stocks made the momentum basket's return: the ten biggest contributions
+    # which stocks made the momentum basket's return: the 15 biggest contributions
     res = simulate(model.baskets(model.score(ranks, VARIANTS["momentum"]), N), open_, close, COST_BPS)
-    held = pd.DataFrame(res.holdings).T.reindex(close.index).ffill().fillna(0)
+    held = pd.DataFrame(res.holdings).T.fillna(0).reindex(close.index).ffill().fillna(0)  # a stock that left is 0
     contrib = (held.shift(1) * close.pct_change(fill_method=None).fillna(0)).loc[res.equity.index].sum()
     contrib.sort_values(ascending=False).head(15).to_csv(out / "momentum_top_contributors.csv")
     return table
