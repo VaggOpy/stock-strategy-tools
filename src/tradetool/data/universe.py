@@ -63,6 +63,17 @@ def fetch_universe() -> pd.DataFrame:
     return out.drop_duplicates("ticker").sort_values(["type", "ticker"]).reset_index(drop=True)
 
 
+def add_sec_industry(u: pd.DataFrame) -> pd.DataFrame:
+    """Add CIK and SIC industry code from the SEC (one classification for all stocks, unlike
+    the GICS/ICB mix from Wikipedia). Needs the fundamentals download to have run."""
+    from tradetool.config import FUNDAMENTALS_DIR
+
+    s = pd.read_csv(FUNDAMENTALS_DIR / "_summary.csv")[["ticker", "cik", "sic", "sic_desc"]]
+    u = u.drop(columns=["cik", "sic", "sic_desc"], errors="ignore").merge(s, on="ticker", how="left")
+    u[["cik", "sic"]] = u[["cik", "sic"]].astype("Int64")
+    return u
+
+
 def load_universe() -> pd.DataFrame:
     if not UNIVERSE_FILE.exists():
         fetch_universe().to_csv(UNIVERSE_FILE, index=False)
@@ -71,6 +82,8 @@ def load_universe() -> pd.DataFrame:
 
 if __name__ == "__main__":
     u = fetch_universe()
+    if "--sic" in __import__("sys").argv:
+        u = add_sec_industry(u)
     u.to_csv(UNIVERSE_FILE, index=False)
     print(u["type"].value_counts().to_string())
     print("S&P 500:", u["in_sp500"].sum(), " Nasdaq-100:", u["in_ndx"].sum(),
