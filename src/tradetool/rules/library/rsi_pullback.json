@@ -1,0 +1,15 @@
+{
+  "name": "RSI pullback",
+  "description": "Short-term pullback in an uptrend: buy when RSI(2) drops under 10 while the close is above the 200-day SMA, sell when the close gets back above the 5-day SMA.",
+  "params": {
+    "rsi_len": {"default": 2, "low": 2, "high": 10},
+    "level": {"default": 10, "low": 2, "high": 40},
+    "trend": {"default": 200, "low": 50, "high": 300, "step": 10},
+    "exit_len": {"default": 5, "low": 3, "high": 20}
+  },
+  "entry": [
+    {"cond": "below", "left": {"ind": "RSI", "length": "$rsi_len"}, "right": {"value": "$level"}},
+    {"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$trend"}}
+  ],
+  "exit": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$exit_len"}}]
+}

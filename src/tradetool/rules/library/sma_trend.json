@@ -1,0 +1,9 @@
+{
+  "name": "200-day trend filter",
+  "description": "Hold the stock while it closes above its 200-day SMA, otherwise stay in cash.",
+  "params": {
+    "length": {"default": 200, "low": 50, "high": 300, "step": 10}
+  },
+  "entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}],
+  "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "SMA", "length": "$length"}}]
+}

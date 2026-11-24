@@ -1,5 +1,5 @@
 """Technical indicators. Every value at day t uses only data up to and including day t
-(rolling windows and ewm, never shift(-k) or centered windows). tests/test_no_lookahead.py checks this.
+(rolling windows and ewm, never shift(-k) or centered windows). tests/test_indicators.py checks this.
 
 RSI and ATR use Wilder's smoothing (alpha = 1/n), the standard definition.
 """

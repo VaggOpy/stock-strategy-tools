@@ -31,6 +31,7 @@ class Indicator:
     overlay: bool
     uses: str = "close"  # "close" or "ohlc"
     levels: list[float] = field(default_factory=list)  # reference lines, e.g. RSI 30/70
+    outputs: list[str] = field(default_factory=list)  # column names when there is more than one line
 
     def compute(self, df: pd.DataFrame, **kw) -> pd.DataFrame:
         args = {p.name: kw.get(p.name, p.default) for p in self.params}
@@ -49,11 +50,14 @@ INDICATORS = {i.key: i for i in [
     Indicator("SMA", "Simple moving average", core.sma, [Param("length", 50, 2, 400)], overlay=True),
     Indicator("EMA", "Exponential moving average", core.ema, [Param("length", 21, 2, 400)], overlay=True),
     Indicator("BB", "Bollinger bands", core.bollinger,
-              [Param("length", 20, 5, 200), Param("std", 2.0, 0.5, 4.0, 0.1)], overlay=True),
-    Indicator("DC", "Donchian channel", core.donchian, [Param("length", 20, 5, 250)], overlay=True, uses="ohlc"),
+              [Param("length", 20, 5, 200), Param("std", 2.0, 0.5, 4.0, 0.1)], overlay=True,
+              outputs=["mid", "upper", "lower"]),
+    Indicator("DC", "Donchian channel", core.donchian, [Param("length", 20, 5, 250)], overlay=True, uses="ohlc",
+              outputs=["upper", "lower"]),
     Indicator("RSI", "Relative strength index", core.rsi, [Param("length", 14, 2, 100)], overlay=False,
               levels=[30, 70]),
     Indicator("MACD", "MACD", core.macd,
-              [Param("fast", 12, 2, 50), Param("slow", 26, 5, 200), Param("signal", 9, 2, 50)], overlay=False),
+              [Param("fast", 12, 2, 50), Param("slow", 26, 5, 200), Param("signal", 9, 2, 50)], overlay=False,
+              outputs=["macd", "signal", "hist"]),
     Indicator("ATR", "Average true range", core.atr, [Param("length", 14, 2, 100)], overlay=False, uses="ohlc"),
 ]}

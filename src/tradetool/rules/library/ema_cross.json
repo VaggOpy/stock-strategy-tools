@@ -1,0 +1,12 @@
+{
+  "name": "EMA cross",
+  "description": "Buy when the fast EMA crosses above the slow EMA, sell when it crosses back below. Stop at 3 ATR.",
+  "params": {
+    "fast": {"default": 20, "low": 5, "high": 50},
+    "slow": {"default": 50, "low": 20, "high": 200, "step": 5},
+    "stop": {"default": 3, "low": 1, "high": 6, "step": 0.5}
+  },
+  "entry": [{"cond": "cross_above", "left": {"ind": "EMA", "length": "$fast"}, "right": {"ind": "EMA", "length": "$slow"}}],
+  "exit": [{"cond": "cross_below", "left": {"ind": "EMA", "length": "$fast"}, "right": {"ind": "EMA", "length": "$slow"}}],
+  "stop_atr": "$stop"
+}
