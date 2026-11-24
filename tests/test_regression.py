@@ -2,6 +2,7 @@
 moves any of these numbers, either it is a bug or the behaviour changed on purpose. In the second
 case update the numbers here in the same commit and say why in the message."""
 import numpy as np
+import pandas as pd
 import pytest
 
 from tradetool.backtest.engine import run
@@ -47,3 +48,22 @@ def test_walk_forward_results_unchanged():
         assert (1 + oos[m]).prod() == pytest.approx(growth, rel=1e-6), m
     for m, picks in PICKS.items():
         assert [r["cols"] for r in rows if r["method"] == m] == picks, m
+
+
+def test_selection_results_unchanged(monkeypatch):
+    """30 synthetic stocks, momentum + both group factors, top 5 every month."""
+    from test_selection import universe_prices
+
+    from tradetool.backtest.portfolio import simulate
+    from tradetool.selection import factors as fx
+    from tradetool.selection import model
+
+    monkeypatch.setattr(fx, "fundamental_history", lambda t: pd.DataFrame())
+    open_, close, u = universe_prices()
+    dates = fx.month_ends(close.index, close.index[300])
+    s = model.score(model.build_factors(close, dates, u, n_clusters=5),
+                    {"momentum": 1, "group_sic": 1, "group_cluster": 1})
+    res = simulate(model.baskets(s, 5), open_, close, cost_bps=5)
+    assert res.equity.iloc[-1] == pytest.approx(1.6811545511, rel=1e-8)
+    assert res.turnover.sum() == pytest.approx(30.0549438319, rel=1e-8)
+    assert list(model.baskets(s, 5)[dates[-1]].index) == ["S09", "S17", "S27", "S11", "S05"]
