@@ -15,8 +15,8 @@ For the supported cases the LLM also explains the backtest on AAPL, and the numb
 explanation are checked against the numbers it was given.
 
 Answers are cached in data/llm_cache, so a second run costs no requests.
-Run: python experiments/llm_rules.py                    (Gemini, model from .env or flash-lite)
-     python experiments/llm_rules.py --model gemini-flash-latest
+Run: python experiments/llm_rules.py                    (Gemini, model from .env or gemini-3.5-flash-lite)
+     python experiments/llm_rules.py --model gemini-3.8-flash
      python experiments/llm_rules.py --ollama qwen2.5:3b
 """
 import argparse

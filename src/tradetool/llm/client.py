@@ -28,7 +28,7 @@ class Gemini:
             raise LLMError("GEMINI_API_KEY is not set in .env (free key: https://aistudio.google.com/apikey)")
         from google import genai
 
-        self.model = model or env("GEMINI_MODEL") or "gemini-flash-lite-latest"
+        self.model = model or env("GEMINI_MODEL") or "gemini-3.5-flash-lite"
         self.name = f"gemini/{self.model}"
         self.version = None  # the exact model behind an alias like *-latest, from the last answer
         self._client = genai.Client(api_key=key)
@@ -40,18 +40,19 @@ class Gemini:
                                   parts=[types.Part(text=m["text"])]) for m in messages]
         config = types.GenerateContentConfig(system_instruction=system, temperature=0,
                                              response_mime_type="application/json" if as_json else None)
-        for attempt in range(4):
+        tries = 5
+        for attempt in range(tries):
             try:
                 r = self._client.models.generate_content(model=self.model, contents=contents, config=config)
                 self.version = r.model_version
                 return r.text or ""
-            except errors.ServerError as e:  # 503 when the model is overloaded, usually short
-                if attempt == 3:
+            except errors.ServerError as e:  # 503 when the model is overloaded, can last a minute or two
+                if attempt == tries - 1:
                     raise LLMError(f"Gemini server error {e.code}: {e.message}") from e
-                time.sleep(5 * 2 ** attempt)
+                time.sleep(min(10 * 2 ** attempt, 60))
             except errors.ClientError as e:
                 wait = _retry_delay(e) if e.code == 429 else None
-                if wait is None or wait > 70 or attempt == 3:
+                if wait is None or wait > 70 or attempt == tries - 1:
                     if e.code == 429:
                         raise LLMError(f"Gemini quota used up for {self.model} (the free tier has a daily "
                                        "limit per project). Try later or use another model.") from e
