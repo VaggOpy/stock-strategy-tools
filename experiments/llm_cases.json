@@ -1,0 +1,121 @@
+[
+ {"id": "ema_10_30", "kind": "exact",
+  "text": "Αγόρασε όταν ο EMA 10 περάσει πάνω από τον EMA 30 και πούλα όταν περάσει από κάτω.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"ind": "EMA", "length": 10}, "right": {"ind": "EMA", "length": 30}}],
+           "exit": [{"cond": "cross_below", "left": {"ind": "EMA", "length": 10}, "right": {"ind": "EMA", "length": 30}}]}},
+
+ {"id": "close_sma50", "kind": "exact",
+  "text": "Buy when the close crosses above the 50-day simple moving average, sell when it crosses back below.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 50}}],
+           "exit": [{"cond": "cross_below", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 50}}]}},
+
+ {"id": "rsi_30_70", "kind": "exact",
+  "text": "Αγορά όταν το RSI 14 πέσει κάτω από 30, έξοδος όταν το RSI ανέβει πάνω από 70.",
+  "rule": {"entry": [{"cond": "below", "left": {"ind": "RSI", "length": 14}, "right": {"value": 30}}],
+           "exit": [{"cond": "above", "left": {"ind": "RSI", "length": 14}, "right": {"value": 70}}]}},
+
+ {"id": "macd_cross_stop", "kind": "exact",
+  "text": "Buy when the MACD line (12, 26, 9) crosses above its signal line and sell on the opposite cross. Use a stop loss of 2 ATR.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"ind": "MACD", "fast": 12, "slow": 26, "signal": 9, "out": "macd"},
+                      "right": {"ind": "MACD", "fast": 12, "slow": 26, "signal": 9, "out": "signal"}}],
+           "exit": [{"cond": "cross_below", "left": {"ind": "MACD", "fast": 12, "slow": 26, "signal": 9, "out": "macd"},
+                     "right": {"ind": "MACD", "fast": 12, "slow": 26, "signal": 9, "out": "signal"}}],
+           "stop_atr": 2}},
+
+ {"id": "breakout_20_10", "kind": "exact",
+  "text": "Αγορά όταν το κλείσιμο σπάσει πάνω από το υψηλό των τελευταίων 20 ημερών, πώληση όταν πέσει κάτω από το χαμηλό των τελευταίων 10 ημερών.",
+  "rule": {"entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "DC", "length": 20, "out": "upper", "shift": 1}}],
+           "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "DC", "length": 10, "out": "lower", "shift": 1}}]}},
+
+ {"id": "bb_lower_mid", "kind": "exact",
+  "text": "Buy when the price closes below the lower Bollinger band (20, 2) and sell when it closes above the middle band.",
+  "rule": {"entry": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "BB", "length": 20, "std": 2, "out": "lower"}}],
+           "exit": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "BB", "length": 20, "std": 2, "out": "mid"}}]}},
+
+ {"id": "rsi2_trend_days", "kind": "exact",
+  "text": "Αγοράζω όταν η μετοχή κλείνει πάνω από τον SMA 200 και το RSI(2) πέσει κάτω από 5. Βγαίνω όταν το κλείσιμο περάσει πάνω από τον SMA 5 ή το αργότερο μετά από 5 μέρες.",
+  "rule": {"entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 200}},
+                     {"cond": "below", "left": {"ind": "RSI", "length": 2}, "right": {"value": 5}}],
+           "exit": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 5}}],
+           "max_days": 5}},
+
+ {"id": "golden_cross", "kind": "exact",
+  "text": "Golden cross: buy when the 50-day SMA crosses above the 200-day SMA, sell on the death cross.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"ind": "SMA", "length": 50}, "right": {"ind": "SMA", "length": 200}}],
+           "exit": [{"cond": "cross_below", "left": {"ind": "SMA", "length": 50}, "right": {"ind": "SMA", "length": 200}}]}},
+
+ {"id": "ema_stack_stop", "kind": "exact",
+  "text": "Μπαίνω όταν ο EMA 20 είναι πάνω από τον EMA 50 και το κλείσιμο πάνω από τον EMA 20. Βγαίνω όταν το κλείσιμο είναι κάτω από τον EMA 50. Stop στα 3 ATR.",
+  "rule": {"entry": [{"cond": "above", "left": {"ind": "EMA", "length": 20}, "right": {"ind": "EMA", "length": 50}},
+                     {"cond": "above", "left": {"price": "close"}, "right": {"ind": "EMA", "length": 20}}],
+           "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "EMA", "length": 50}}],
+           "stop_atr": 3}},
+
+ {"id": "momentum_shift", "kind": "exact",
+  "text": "Buy when today's close is higher than the close 20 days ago and RSI(14) is above 50; sell when the close is lower than the close 20 days ago.",
+  "rule": {"entry": [{"cond": "above", "left": {"price": "close"}, "right": {"price": "close", "shift": 20}},
+                     {"cond": "above", "left": {"ind": "RSI", "length": 14}, "right": {"value": 50}}],
+           "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"price": "close", "shift": 20}}]}},
+
+ {"id": "ema_rsi_band_days", "kind": "exact",
+  "text": "Buy when the 5-day EMA is above the 20-day EMA and RSI(14) is between 40 and 70. Exit when the 5-day EMA goes below the 20-day EMA or after 15 days.",
+  "rule": {"entry": [{"cond": "above", "left": {"ind": "EMA", "length": 5}, "right": {"ind": "EMA", "length": 20}},
+                     {"cond": "above", "left": {"ind": "RSI", "length": 14}, "right": {"value": 40}},
+                     {"cond": "below", "left": {"ind": "RSI", "length": 14}, "right": {"value": 70}}],
+           "exit": [{"cond": "below", "left": {"ind": "EMA", "length": 5}, "right": {"ind": "EMA", "length": 20}}],
+           "max_days": 15}},
+
+ {"id": "bb_touch_reclaim", "kind": "exact",
+  "text": "Αγορά όταν το χαμηλό της μέρας πέσει κάτω από την κάτω ζώνη Bollinger (20, 2,5) αλλά το κλείσιμο κλείσει πάνω από αυτήν. Έξοδος όταν το κλείσιμο περάσει πάνω από την πάνω ζώνη, με stop 1,5 ATR.",
+  "rule": {"entry": [{"cond": "below", "left": {"price": "low"}, "right": {"ind": "BB", "length": 20, "std": 2.5, "out": "lower"}},
+                     {"cond": "above", "left": {"price": "close"}, "right": {"ind": "BB", "length": 20, "std": 2.5, "out": "lower"}}],
+           "exit": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "BB", "length": 20, "std": 2.5, "out": "upper"}}],
+           "stop_atr": 1.5}},
+
+ {"id": "buy_the_dip", "kind": "vague",
+  "text": "Αγόρασε στα βουτήγματα όσο η μετοχή είναι σε ανοδική τάση.",
+  "rule": {"entry": [{"cond": "below", "left": {"ind": "RSI", "length": 2}, "right": {"value": 10}},
+                     {"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 200}}],
+           "exit": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "SMA", "length": 5}}]}},
+
+ {"id": "follow_trend", "kind": "vague",
+  "text": "Follow the trend with moving averages.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"ind": "EMA", "length": 20}, "right": {"ind": "EMA", "length": 50}}],
+           "exit": [{"cond": "cross_below", "left": {"ind": "EMA", "length": 20}, "right": {"ind": "EMA", "length": 50}}]}},
+
+ {"id": "oversold", "kind": "vague",
+  "text": "Αγόρασε όταν η μετοχή είναι υπερπουλημένη και πούλα όταν γίνει υπεραγορασμένη.",
+  "rule": {"entry": [{"cond": "below", "left": {"ind": "RSI", "length": 14}, "right": {"value": 30}}],
+           "exit": [{"cond": "above", "left": {"ind": "RSI", "length": 14}, "right": {"value": 70}}]}},
+
+ {"id": "new_highs", "kind": "vague",
+  "text": "Buy breakouts to new highs and get out when the breakout fails.",
+  "rule": {"entry": [{"cond": "above", "left": {"price": "close"}, "right": {"ind": "DC", "length": 55, "out": "upper", "shift": 1}}],
+           "exit": [{"cond": "below", "left": {"price": "close"}, "right": {"ind": "DC", "length": 20, "out": "lower", "shift": 1}}]}},
+
+ {"id": "golden_cross_volume", "kind": "partial",
+  "text": "Αγόρασε όταν ο SMA 50 περάσει πάνω από τον SMA 200 και ο όγκος είναι διπλάσιος από τον μέσο όρο. Πούλα στο αντίθετο.",
+  "rule": {"entry": [{"cond": "cross_above", "left": {"ind": "SMA", "length": 50}, "right": {"ind": "SMA", "length": 200}}],
+           "exit": [{"cond": "cross_below", "left": {"ind": "SMA", "length": 50}, "right": {"ind": "SMA", "length": 200}}]}},
+
+ {"id": "rsi_earnings", "kind": "partial",
+  "text": "Buy when RSI(14) drops below 30 and the company beat its last earnings estimate. Sell when RSI goes back above 50.",
+  "rule": {"entry": [{"cond": "below", "left": {"ind": "RSI", "length": 14}, "right": {"value": 30}}],
+           "exit": [{"cond": "above", "left": {"ind": "RSI", "length": 14}, "right": {"value": 50}}]}},
+
+ {"id": "price_level", "kind": "unsupported",
+  "text": "Αγόρασε όταν η τιμή πέσει κάτω από τα 100 δολάρια.",
+  "rule": null},
+
+ {"id": "news", "kind": "unsupported",
+  "text": "Buy the stock when there is positive news about the company and sell on negative news.",
+  "rule": null},
+
+ {"id": "short", "kind": "unsupported",
+  "text": "Άνοιξε short όταν η αγορά πέφτει και κλείσ' το όταν γυρίσει.",
+  "rule": null},
+
+ {"id": "pe_ratio", "kind": "unsupported",
+  "text": "Buy companies with a P/E below 15 and growing revenue.",
+  "rule": null}
+]
